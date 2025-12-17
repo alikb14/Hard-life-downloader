@@ -20,6 +20,8 @@ app = get_app()
 @app.on_message(filters.command("nsfw"))
 @background_handler(label="nsfw_command")
 def nsfw_command(app, message):
+    # Disabled command
+    return
     messages = safe_get_messages(message.chat.id)
     chat_id = message.chat.id
     chat_type = getattr(message.chat, "type", None)

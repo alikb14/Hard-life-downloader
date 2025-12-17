@@ -33,10 +33,10 @@ def apply_global_messages_patch():
         builtins.safe_get_messages_instance = safe_safe_get_messages
         builtins.safe_messages = safe_messages
         
-        print("✅ GLOBAL MESSAGES PATCH APPLIED - NameError protection active")
+        print("[OK] GLOBAL MESSAGES PATCH APPLIED - NameError protection active")
         
     except Exception as e:
-        print(f"❌ Failed to apply global messages patch: {e}")
+        print(f"[ERR] Failed to apply global messages patch: {e}")
         # Создаем минимальную защиту
         class EmergencyMessages:
             def __getattr__(self, name):

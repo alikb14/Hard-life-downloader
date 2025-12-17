@@ -1,129 +1,82 @@
 # Python
 __pycache__/
 *.py[cod]
-*.pyo
 *.pyd
+*.so
+*.dylib
 *.egg-info/
+.mypy_cache/
 .pytest_cache/
+.coverage
+*.cover
+htmlcov/
 
-# Editor / OS
+# Editors / OS
 .DS_Store
+Thumbs.db
 .idea/
 .vscode/
 *.swp
+*.swo
 
-# Virtual env / env files
+# Environments / secrets
 venv/
-benv/
 .venv/
-.env
+benv/
+env/
+ENV/
 .python-version
+.env
+.env.*
 
-# Bot runtime / sessions / logs
-magic.session
-magic.session-journal
-magic.session-shm
-magic.session-wal
-unknown_errors.txt
-magic.session-lock
-.bot_pid
+# Runtime sessions / logs
+*.log
+run_bot.log*
 bot.log
+bot_debug.log
 runtime.log
+.bot_pid
+*.pid
+*.session
+*.session-*
+magic.session*
+*.db
+*.sqlite3
+unknown_errors.txt
 
-# Local data / caches / backups
-users/
-cookies/
-tests/
-_backup/
-_backup/_arabic_fonts_amiri/
-_cursor/
-_cursor/TOOLS/
-TOOLS/
-_arabic_fonts_amiri/
-*.backup_*
+# Data caches / generated content
 dump.json
 firebase_cache.json
-blocked_users.txt
-unblocked_users.txt
-unknown_errors.txt
-
-# yt-dlp binaries / temp downloads
+*.backup_*
+users/
+cookies/
 yt-dlp
+gallery-dl
 *.part
-*.ytdl
 *.temp
 *.tmp
-
-# Sample / experimental scripts
-gallery-dl/
-test.py
-torrent.py
-bot_sample.py
-users.txt
-TOOLS/script.sh
-scripts/delete_video_cache.py
-scripts/create_video_cache_folders.py
-scripts/
-_cursor/TOOLS/script.sh
-script.sh
-log.txt
-cleanup_git.sh
-cleanup_git.ps1
-porn.py
-porn.sh
-porn_req.txt
-git_update.bat
-git_update.ps1
-git_update.sh
-test_count_var.py
-reverse_test_count_var.py
-replace_log.txt
-test_search_var.py
-auto_replace_unused.py
-replace_logger.py
-update_bgutil_provider.sh
-update-yt-dlp.sh
-.cursor/
-.cursor/commands/
-.cursor/commands/cookiesfrombrowser.md
-remove_duplicate_keywords_correct.py
-remove_duplicate_keywords.py
-remove_duplicate_keywords_fast.py
-lang_trans.py
-translate_ar.py
-translate_in.py
-translate_ru.py
-translate_en.py
-translate_messages.py
-COPY_FILES_FOR_VPS.sh
-README_TEST_FILES.md
-create_test_files.py
-REFACTORING_PROMPT.md
-MULTILANG_SYSTEM_REPORT.md
-bot_debug.log
-yt-dlp
-test_clean_files/
-fix_fake_message_threads.py
-test_thread_support.py
-THREAD_SUPPORT_SUMMARY.md
-start_docker.sh
-monitor_resources.py
+*.ytdl
+*.aria2
+*.crdownload
+*.download
 channel_guard_session_string.txt
 channel_guard_user_session.session
 
-# Configs with secrets (do not commit)
-CONFIG/config.py
-NEWCODE
-NEWCODE/
-_old/
-#CONFIG/domains.py
-config.py
-TXT/porn_domains.txt
-TXT/porn_keywords.txt
-TXT/porn_keywords.txt.removal_report.txt
-TXT/porn_keywords.txt.backup
+# Docker runtime data
+docker/configuration-webserver/data/*
+!docker/configuration-webserver/data/.gitkeep
+docker/configuration-webserver/config/*
+!docker/configuration-webserver/config/.gitkeep
 
-!requirements.txt
+# Configs with secrets / local state
+CONFIG/config.py
+config.py
 CONFIG/.dashboard_sessions.json
 CONFIG/.active_sessions.json
-env
+CONFIG/.cooldowns.json
+CONFIG/.rate_limits.json
+
+# Backups / scratch
+_backup/
+_old/
+NEWCODE/

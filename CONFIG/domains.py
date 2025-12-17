@@ -5,8 +5,11 @@ class DomainsConfig(object):
     #######################################################
     # Restricted content site lists
     #######################################################
-    BLACK_LIST = []
-    #BLACK_LIST = ["pornhub", "phncdn.com", "xvideos", "xhcdn.com", "xhamster"]
+    BLACK_LIST = [
+        "pornhub", "phncdn.com", "xvideos", "xhcdn.com", "xhamster",
+        "redtube", "youporn", "spankbang", "xnxx", "porntube", "porn.com",
+        "eporner", "tnaflix", "tube8", "hclips", "youjizz"
+    ]
     # Paths to domain and keyword lists
     PORN_DOMAINS_FILE = "TXT/porn_domains.txt"
     PORN_KEYWORDS_FILE = "TXT/porn_keywords.txt"
@@ -30,13 +33,9 @@ class DomainsConfig(object):
     GALLERYDL_ONLY_DOMAINS = [
         # Imageboards / archives / art communities largely covered by gallery-dl
         '2ch.su', '35photo.pro', 'behoimi.org', '4archive.org', '8chan.moe',
-        'comics.8muses.com', 'agn.ph', 'arca.live', 'architizer.com', 'aryion.com',
         'catbox.moe', 'civitai.com', 'danke-fuers-lesen.de', 'desktopography.net',
-        'e-hentai.org', 'exhentai.org', 'everia.club', 'fapello.com', 'furry34.com',
-        'gelbooru.com', 'girlswithmuscle.com', 'itaku.ee', 'kemono.cr', 'kemono.party',
-        'coomer.party', 'leakgallery.com', 'myportfolio.com', 'nekohouse.su',
-        'nhentai.net', 'photovogue.com', 'pixeltabel.com', 'weasyl.com', 'wikifeet.com',
-        'xasiat.com', 'wallhaven.cc'
+        'architizer.com', 'itaku.ee', 'myportfolio.com', 'photovogue.com',
+        'pixeltabel.com', 'weasyl.com', 'wallhaven.cc'
     ]
 
     GALLERYDL_ONLY_PATH = [
@@ -121,8 +120,6 @@ class DomainsConfig(object):
         'veoh.com', 'archive.org', 'ted.com',
         'mediasetplay.mediaset.it', 'ndr.de', 'zdf.de', 'arte.tv',
         'video.yandex.ru', 'video.sibnet.ru', 'pladform.ru', 'pikabu.ru',
-        'redtube.com', 'youporn.com', 'xhamster.com',
-        'spankbang.com', 'xnxx.com', 'xvideos.com',
         'bitchute.com', 'rumble.com', 'peertube.tv',
         'aparat.com', 'nicovideo.jp',
         'disk.yandex.net', 'streaming.disk.yandex.net',

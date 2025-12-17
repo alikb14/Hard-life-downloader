@@ -13,10 +13,12 @@ class Config(object):
     #######################################################    
     # IMPORTANT (REQUIRED) SETTINGS - start filling settings here
     #######################################################        
+    # Bot namespace for database/cache/logging (single source of truth)
+    BOT_NAMESPACE = "tgytdlp_bot"
     # Your bot name - Required (str)
     BOT_NAME = "tgytdlp_test_bot"
     # A name for users - Required (str)
-    BOT_NAME_FOR_USERS = "tgytdlp_bot" #name in database
+    BOT_NAME_FOR_USERS = BOT_NAMESPACE  # name in database
     # List of administrator IDs
     ADMIN = [00000000, 111111111111]
     # Add allowed group IDs - Only these groups will be served by the bot
@@ -51,10 +53,10 @@ class Config(object):
     # Firebase initialization
     USE_FIREBASE = False
     # your firebase DB path
-    BOT_DB_PATH = f"bot/{BOT_NAME_FOR_USERS}/"
-    VIDEO_CACHE_DB_PATH = f"bot/video_cache"
-    PLAYLIST_CACHE_DB_PATH = f"bot/video_cache/playlists"
-    IMAGE_CACHE_DB_PATH = f"bot/video_cache/images"    
+    BOT_DB_PATH = f"bot/{BOT_NAMESPACE}/"
+    VIDEO_CACHE_DB_PATH = f"{BOT_DB_PATH}video_cache"
+    PLAYLIST_CACHE_DB_PATH = f"{BOT_DB_PATH}video_cache/playlists"
+    IMAGE_CACHE_DB_PATH = f"{BOT_DB_PATH}video_cache/images"    
     # Firebase Config - Required (str for all)
     # Firebase settings
     FIREBASE_USER = "XXX@gmail.com"
@@ -109,6 +111,11 @@ class Config(object):
     RELOAD_CACHE_EVERY = 1 # in hours
     DOWNLOAD_FIREBASE_SCRIPT_PATH = "DATABASE/download_firebase.py"
     AUTO_CACHE_RELOAD_ENABLED = True # Enable/disable automatic cache reloading
+    # Local save mode: when True, downloaded files are saved to LOCAL_SAVE_BASE_PATH per user/platform instead of uploading to Telegram
+    LOCAL_SAVE_ENABLED = False
+    LOCAL_SAVE_BASE_PATH = "Downloads-Bots"
+    # Optional UNC/shared base path for display in messages (user and platform folders will be appended)
+    LOCAL_SAVE_SHARE_BASE = r"\\server\path\to\downloads"
     ########################################################
     # Proxy configuration
     PROXY_TYPE="http" # http, https, socks4, socks5, socks5h
@@ -230,3 +237,36 @@ class Config(object):
     DASHBOARD_PASSWORD = "admin123"
     ACTIVE_SESSIONS_FILE = "CONFIG/.active_sessions.json"
     #######################################################
+
+
+def get_bot_namespace() -> str:
+    """
+    Returns the configured bot namespace (single source of truth).
+    Ensures it is present and not a Telegram username (no '@').
+    """
+    namespace = getattr(Config, "BOT_NAMESPACE", None) or getattr(Config, "BOT_NAME_FOR_USERS", None)
+    namespace_str = str(namespace).strip() if namespace is not None else ""
+    if not namespace_str:
+        raise RuntimeError("Config.BOT_NAMESPACE (or BOT_NAME_FOR_USERS) must be set to a non-empty value.")
+    if namespace_str.startswith("@"):
+        raise RuntimeError("Config.BOT_NAMESPACE must not start with '@' — use a neutral identifier for the database namespace.")
+    # Keep legacy alias in sync when both are present
+    alias = getattr(Config, "BOT_NAME_FOR_USERS", namespace_str)
+    if str(alias).strip() != namespace_str:
+        raise RuntimeError("Config.BOT_NAME_FOR_USERS must match Config.BOT_NAMESPACE to avoid split namespaces.")
+    return namespace_str
+
+
+def get_bot_db_root() -> str:
+    """Returns the root path for DB/cache/logs under the bot namespace."""
+    namespace = get_bot_namespace()
+    raw_root = getattr(Config, "BOT_DB_PATH", None)
+    cleaned = str(raw_root).strip().strip("/") if raw_root else ""
+    root = cleaned or f"bot/{namespace}"
+    if namespace not in root.split("/"):
+        raise RuntimeError("Config.BOT_DB_PATH must include the bot namespace.")
+    return root
+
+
+# Defensive startup check
+get_bot_namespace()

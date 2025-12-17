@@ -4,6 +4,8 @@
 # ########################################
 
 import os
+import re
+import shutil
 from HELPERS.logger import get_log_channel
 from CONFIG.logger_msg import LoggerMsg
 import threading
@@ -33,6 +35,7 @@ from PIL import Image
 import io
 from CONFIG.config import Config
 from CONFIG.messages import Messages, safe_get_messages
+from HELPERS.bot_namespace import get_bot_namespace
 from COMMANDS.subtitles_cmd import is_subs_enabled, check_subs_availability, get_user_subs_auto_mode, _subs_check_cache, download_subtitles_ytdlp, is_subs_always_ask
 from COMMANDS.mediainfo_cmd import send_mediainfo_if_enabled
 from URL_PARSERS.playlist_utils import is_playlist_with_range
@@ -42,6 +45,7 @@ from pyrogram.types import ReplyParameters
 from HELPERS.safe_messeger import safe_send_message
 from pyrogram import enums
 from URL_PARSERS.tags import extract_url_range_tags
+from HELPERS.path_utils import build_local_save_paths, detect_platform_from_url
 
 # Get app instance for decorators
 app = get_app()
@@ -1318,9 +1322,8 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                     
                     send_error_to_user(
                         message,
-                        "<blockquote>Check <a href='https://github.com/chelaxian/tg-ytdlp-bot/wiki/YT_DLP#supported-sites'>here</a> if your site supported</blockquote>\n"
                         "<blockquote>You may need <code>cookie</code> for downloading this audio. First, clean your workspace via <b>/clean</b> command</blockquote>\n"
-                        "<blockquote>For Youtube - get <code>cookie</code> via <b>/cookie</b> command. For any other supported site - send your own cookie (<a href='https://t.me/tg_ytdlp/203'>guide1</a>) (<a href='https://t.me/tg_ytdlp/214'>guide2</a>) and after that send your audio link again.</blockquote>\n"
+                        "<blockquote>For Youtube - get <code>cookie</code> via <b>/cookie</b> command. For any other supported site - send your own cookie and after that send your audio link again.</blockquote>\n"
                         f"────────────────\n"
                         f"❌ <b>Error Code:</b> <code>{error_code}</code>\n"
                         f"📝 <b>Description:</b> {error_description}\n"
@@ -1779,7 +1782,7 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
             tags_for_final = tags if isinstance(tags, list) else (tags.split() if isinstance(tags, str) else [])
             tags_text_final = generate_final_tags(url, tags_for_final, info_dict)
             tags_block = (tags_text_final.strip() + '\n') if tags_text_final and tags_text_final.strip() else ''
-            bot_name = getattr(Config, 'BOT_NAME', None) or 'bot'
+            bot_name = getattr(Config, 'BOT_NAME', None) or get_bot_namespace()
             bot_mention = f' @{bot_name}' if not bot_name.startswith('@') else f' {bot_name}'
             # Create display title from MP3 metadata (artist + title)
             try:
@@ -1820,8 +1823,56 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
             if tags_block:
                 caption_with_link += tags_block
             caption_with_link += link_block
-            
+
+            def _safe_folder_name(chat) -> str:
+                """Build folder name with priority: username, full name, then user id."""
+                try:
+                    import re
+                    username = getattr(chat, "username", None)
+                    if username:
+                        candidate = username
+                    else:
+                        first = getattr(chat, "first_name", "") or ""
+                        last = getattr(chat, "last_name", "") or ""
+                        full = (first + " " + last).strip()
+                        candidate = full or str(getattr(chat, "id", "user"))
+                    safe = re.sub(r"[^A-Za-z0-9._-]+", "_", candidate).strip("_")
+                    return safe or str(getattr(chat, "id", "user"))
+                except Exception:
+                    return str(getattr(chat, "id", "user"))
+
+            def _save_audio_locally(audio_path: str) -> bool:
+                """Move downloaded audio to the local save directory and notify the user."""
+                try:
+                    dest_base = getattr(Config, "LOCAL_SAVE_BASE_PATH", "Downloads-Bots")
+                    platform_dir = detect_platform_from_url(url)
+                    folder_name = _safe_folder_name(message.chat)
+                    dest_dir, display_dir = build_local_save_paths(
+                        dest_base,
+                        platform_dir,
+                        folder_name,
+                        getattr(Config, "LOCAL_SAVE_SHARE_BASE", None),
+                    )
+                    os.makedirs(dest_dir, exist_ok=True)
+                    dest_path = os.path.join(dest_dir, os.path.basename(audio_path))
+                    shutil.move(audio_path, dest_path)
+                    app.send_message(
+                        user_id,
+                        f"<code>{display_dir}</code>",
+                        parse_mode=enums.ParseMode.HTML,
+                        reply_parameters=ReplyParameters(message_id=message.id)
+                    )
+                    return True
+                except Exception as e:
+                    logger.error(f"[LOCAL_SAVE_AUDIO] Failed to save audio locally: {e}")
+                    return False
+
             try:
+                # Local save mode: move the file and skip Telegram upload entirely
+                if getattr(Config, "LOCAL_SAVE_ENABLED", False):
+                    if _save_audio_locally(audio_file):
+                        continue
+
                 # Create Telegram-compliant thumbnail if cover is available
                 telegram_thumb = None
                 if cover_path and os.path.exists(cover_path):
@@ -2007,9 +2058,13 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
                 pass
 
         if successful_uploads == len(indices_to_download):
-            success_msg = f"{safe_get_messages(user_id).AUDIO_SUCCESSFULLY_COMPLETED_MSG.format(total_files=len(indices_to_download))}\n{safe_get_messages(user_id).CREDITS_MSG}"
+            credits = safe_get_messages(user_id).CREDITS_MSG
+            base_msg = safe_get_messages(user_id).AUDIO_SUCCESSFULLY_COMPLETED_MSG.format(total_files=len(indices_to_download))
+            success_msg = f"{base_msg}\n{credits}" if credits else base_msg
         else:
-            success_msg = f"{safe_get_messages(user_id).AUDIO_PARTIALLY_COMPLETED_MSG.format(successful_uploads=successful_uploads, total_files=len(indices_to_download))}\n{safe_get_messages(user_id).CREDITS_MSG}"
+            credits = safe_get_messages(user_id).CREDITS_MSG
+            base_msg = safe_get_messages(user_id).AUDIO_PARTIALLY_COMPLETED_MSG.format(successful_uploads=successful_uploads, total_files=len(indices_to_download))
+            success_msg = f"{base_msg}\n{credits}" if credits else base_msg
             
         try:
             safe_edit_message_text(user_id, proc_msg_id, success_msg)
@@ -2024,7 +2079,6 @@ def down_and_audio(app, message, url, tags, quality_key=None, playlist_name=None
             download_dir = get_user_download_dir(user_id)
             if download_dir and os.path.exists(download_dir):
                 logger.info(f"Cleaning up download subdirectory after successful audio upload: {download_dir}")
-                import shutil
                 shutil.rmtree(download_dir)
                 logger.info(f"Successfully removed download subdirectory: {download_dir}")
         except Exception as cleanup_error:

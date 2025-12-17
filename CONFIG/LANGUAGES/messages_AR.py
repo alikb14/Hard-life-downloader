@@ -8,7 +8,7 @@ class Messages(object):
     #######################################################
     # Messages and errors
     #######################################################
-    CREDITS_MSG = "<blockquote><i>يديره</i> @iilililiiillliiliililliilliliiil\n🇮🇹 @tgytdlp_it_bot\n🇦🇪 @tgytdlp_uae_bot\n🇬🇧 @tgytdlp_uk_bot\n🇫🇷 @tgytdlp_fr_bot</blockquote>\n<b>🌍 تغيير اللغة: /lang</b>"
+    CREDITS_MSG = ""
     TO_USE_MSG = "<i>لاستخدام هذا البوت تحتاج إلى الاشتراك في قناة تليجرام @tg_ytdlp.</i>\nبعد انضمامك إلى القناة، <b>أعد إرسال رابط الفيديو مرة أخرى وسيقوم البوت بتحميله لك</b> ❤️\n\n<blockquote>P.S. تحميل 🔞NSFW المحتوى والملفات من ☁️Cloud Storage هو مدفوع! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ لا تغادر القناة - سيتم حظرك من استخدام البوت ⛔️</blockquote>"
 
     ERROR1 = "لم يتم العثور على رابط URL. يرجى إدخال رابط يحتوي على <b>https://</b> أو <b>http://</b>"
@@ -169,11 +169,6 @@ class Messages(object):
         ".youtube.com  TRUE  /  FALSE  222  ST-xxxxx  session_logininfo=BBB\n"
         ".youtube.com  TRUE  /  FALSE  33333  ST-xxxxx  session_logininfo=CCC\n"
         "</pre>\n"
-        "<blockquote>"
-        "<b><u>التعليمات:</u></b>\n"
-        "https://t.me/tg_ytdlp/203 \n"
-        "https://t.me/tg_ytdlp/214 "
-        "</blockquote>"
     )
     
     # Search command message (Arabic)
@@ -1386,9 +1381,9 @@ class Messages(object):
     AUDIO_PROGRESS_MSG = "<b>صوت:</b> {current} / {total}"
     
     # Error messages
-    ERROR_CHECK_SUPPORTED_SITES_MSG = "تحقق <a href='https://github.com/chelaxian/tg-ytdlp-bot/wiki/YT_DLP#supported-sites'>هنا</a> إذا كان موقعك مدعوماً"
+    ERROR_CHECK_SUPPORTED_SITES_MSG = "قد يكون هذا الموقع غير مدعوم."
     ERROR_COOKIE_NEEDED_MSG = "قد تحتاج <code>cookie</code> لتحميل هذا الفيديو. أولاً، نظف مساحة العمل عبر أمر <b>/clean</b>"
-    ERROR_COOKIE_INSTRUCTIONS_MSG = "لـ YouTube - احصل على <code>cookie</code> عبر أمر <b>/cookie</b>. لأي موقع مدعوم آخر - أرسل ملف cookie الخاص بك (<a href='https://t.me/tg_ytdlp/203'>دليل1</a>) (<a href='https://t.me/tg_ytdlp/214'>دليل2</a>) وبعد ذلك أرسل رابط الفيديو مرة أخرى."
+    ERROR_COOKIE_INSTRUCTIONS_MSG = "لـ YouTube - احصل على <code>cookie</code> عبر أمر <b>/cookie</b>. لأي موقع مدعوم آخر - أرسل ملف cookie الخاص بك وبعد ذلك أرسل رابط الفيديو مرة أخرى."
     CHOOSE_SUBTITLE_LANGUAGE_MSG = "اختر لغة الترجمة"
     NO_ALTERNATIVE_AUDIO_LANGUAGES_MSG = "لا توجد لغات صوت بديلة"
     CHOOSE_AUDIO_LANGUAGE_MSG = "اختر لغة الصوت"
@@ -1605,7 +1600,7 @@ class Messages(object):
     ARGS_ERROR_SENDING_TIMEOUT_MSG = "خطأ في إرسال رسالة انتهاء الوقت: {error}"
     
     # Language selection messages
-    LANG_SELECTION_MSG = "🌍 <b>اختر اللغة</b>\n\n🇺🇸 الإنجليزية\n🇷🇺 الروسية\n🇸🇦 العربية\n🇮🇳 الهندية"
+    LANG_SELECTION_MSG = "🌍 <b>اختر اللغة</b>\n\n🇺🇸 الإنجليزية\n🇸🇦 العربية"
     LANG_CHANGED_MSG = "✅ تم تغيير اللغة إلى {lang_name}"
     LANG_ERROR_MSG = "❌ خطأ في تغيير اللغة"
     LANG_CLOSED_MSG = "تم إغلاق اختيار اللغة"

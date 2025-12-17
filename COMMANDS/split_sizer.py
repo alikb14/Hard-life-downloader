@@ -62,6 +62,8 @@ app = get_app()
 # @reply_with_keyboard
 @background_handler(label="split_command")
 def split_command(app, message):
+    # Disabled command
+    return
     messages = safe_get_messages(message.chat.id)
     user_id = message.chat.id
     # Subscription check for non-admines
@@ -169,4 +171,3 @@ def get_user_split_size(user_id):
         except Exception:
             pass
     return 1950 * 1024 * 1024  # default 1.95GB
-

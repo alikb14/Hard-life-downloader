@@ -13,11 +13,13 @@ from importlib import import_module, metadata
 
 from CONFIG.config import Config
 from DATABASE.cache_db import get_next_reload_time
+from HELPERS.bot_namespace import get_bot_namespace
 
 logger = logging.getLogger(__name__)
 
 # Кеш для скорости сети
 _network_speed_cache = {"last_check": 0, "last_sent": 0, "last_recv": 0, "speed_sent": 0, "speed_recv": 0}
+BOT_NAMESPACE = get_bot_namespace()
 
 
 def get_network_speed() -> Dict[str, Any]:
@@ -287,10 +289,10 @@ def rotate_ip() -> Dict[str, Any]:
 
 
 def restart_service() -> Dict[str, Any]:
-    """Перезапускает сервис tg-ytdlp-bot."""
+    """Перезапускает systemd-сервис бота (имя совпадает с namespace)."""
     try:
         result = subprocess.run(
-            ["sudo", "systemctl", "restart", "tg-ytdlp-bot"],
+            ["sudo", "systemctl", "restart", BOT_NAMESPACE],
             capture_output=True,
             text=True,
             timeout=30,
@@ -307,9 +309,10 @@ def restart_service() -> Dict[str, Any]:
 def update_engines() -> Dict[str, Any]:
     """Обновляет движки через engines_updater.sh."""
     try:
+        remote_root = f"/root/Telegram/{BOT_NAMESPACE}"
         commands = [
-            ("yt-dlp/gdl", ["bash", "/root/Telegram/tg-ytdlp-bot/engines_updater.sh"]),
-            ("bgutil-provider", ["bash", "/root/Telegram/tg-ytdlp-bot/update_bgutil_provider.sh"]),
+            ("yt-dlp/gdl", ["bash", f"{remote_root}/engines_updater.sh"]),
+            ("bgutil-provider", ["bash", f"{remote_root}/update_bgutil_provider.sh"]),
         ]
         outputs = []
         for label, command in commands:
@@ -334,7 +337,7 @@ def update_engines() -> Dict[str, Any]:
 def cleanup_user_files() -> Dict[str, Any]:
     """Удаляет файлы из папок пользователей (кроме системных)."""
     try:
-        users_dir = "/root/Telegram/tg-ytdlp-bot/users"
+        users_dir = f"/root/Telegram/{BOT_NAMESPACE}/users"
         result = subprocess.run(
             [
                 "/usr/bin/find",
@@ -369,7 +372,7 @@ def cleanup_user_files() -> Dict[str, Any]:
 def update_lists() -> Dict[str, Any]:
     """Обновляет списки через script.sh."""
     try:
-        script_path = "/root/Telegram/tg-ytdlp-bot/script.sh"
+        script_path = f"/root/Telegram/{BOT_NAMESPACE}/script.sh"
         result = subprocess.run(
             ["bash", script_path],
             capture_output=True,
@@ -626,4 +629,3 @@ def update_config_setting(key: str, value: Any) -> bool:
         import traceback
         logger.error(traceback.format_exc())
         return False
-

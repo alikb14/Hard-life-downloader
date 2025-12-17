@@ -11,11 +11,13 @@ from DOWN_AND_UP.ffmpeg import get_video_info_ffprobe
 import os
 import subprocess
 import json
+import shutil
 from HELPERS.safe_messeger import safe_forward_messages
 from URL_PARSERS.thumbnail_downloader import download_thumbnail
 from CONFIG.config import Config
 from CONFIG.messages import Messages, safe_get_messages
 from CONFIG.limits import LimitsConfig
+from HELPERS.path_utils import build_local_save_paths, detect_platform_from_url
 import time
 
 # Get app instance for decorators
@@ -60,7 +62,50 @@ def send_videos(
     video_url = m.group(0) if m else ""
     temp_desc_path = os.path.join(os.path.dirname(video_abs_path), "full_description.txt")
     was_truncated = False
-    
+
+    def _safe_folder_name(chat) -> str:
+        """Build folder name with priority: username, full name, then user id."""
+        try:
+            import re
+            username = getattr(chat, "username", None)
+            if username:
+                candidate = username
+            else:
+                first = getattr(chat, "first_name", "") or ""
+                last = getattr(chat, "last_name", "") or ""
+                full = (first + " " + last).strip()
+                candidate = full or str(getattr(chat, "id", "user"))
+            safe = re.sub(r"[^A-Za-z0-9._-]+", "_", candidate).strip("_")
+            return safe or str(getattr(chat, "id", "user"))
+        except Exception:
+            return str(getattr(chat, "id", "user"))
+
+    # If local save mode is enabled, store file locally per user and return path instead of uploading
+    if getattr(Config, "LOCAL_SAVE_ENABLED", False):
+        try:
+            dest_base = getattr(Config, "LOCAL_SAVE_BASE_PATH", "Downloads-Bots")
+            platform_dir = detect_platform_from_url(video_url)
+            folder_name = _safe_folder_name(message.chat)
+            dest_dir, display_dir = build_local_save_paths(
+                dest_base,
+                platform_dir,
+                folder_name,
+                getattr(Config, "LOCAL_SAVE_SHARE_BASE", None),
+            )
+            os.makedirs(dest_dir, exist_ok=True)
+            dest_path = os.path.join(dest_dir, os.path.basename(video_abs_path))
+            shutil.move(video_abs_path, dest_path)
+            app.send_message(
+                user_id,
+                f"<code>{display_dir}</code>",
+                parse_mode=enums.ParseMode.HTML,
+                reply_parameters=ReplyParameters(message_id=message.id)
+            )
+            # Return a dict with minimal fields to avoid attribute access crashes
+            return {"id": None, "local_path": dest_path}
+        except Exception as e:
+            logger.error(f"[LOCAL_SAVE] Failed to save video locally: {e}")
+
     # Check if user has send_as_file enabled
     user_args = get_user_args(user_id)
     send_as_file = user_args.get("send_as_file", False)

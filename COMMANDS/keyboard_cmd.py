@@ -103,13 +103,12 @@ def keyboard_command(app, message):
             message=message
         )
     
-    # Always show full keyboard when /keyboard command is used
-    full_keyboard = [
-        ["/clean", "/cookie", "/settings"],
-        ["/playlist", "/search", "/help"]
+    # Always show minimal keyboard when /keyboard command is used
+    minimal_keyboard = [
+        ["/settings", "/playlist"]
     ]
     
-    reply_markup = ReplyKeyboardMarkup(full_keyboard, resize_keyboard=True)
+    reply_markup = ReplyKeyboardMarkup(minimal_keyboard, resize_keyboard=True)
     safe_send_message(message.chat.id, safe_get_messages(user_id).KEYBOARD_ACTIVATED_MSG, reply_markup=reply_markup, message=message)
 
 def keyboard_callback_handler(app, callback_query):
@@ -176,33 +175,28 @@ safe_get_messages(user_id).KEYBOARD_HIDDEN_MSG,
                 from HELPERS.logger import logger
                 logger.warning(safe_get_messages(user_id).KEYBOARD_FAILED_HIDE_MSG.format(error=e))
         elif setting == "1x3":
-            one_by_three = [["/clean", "/cookie", "/settings"]]
+            compact = [["/settings", "/playlist"]]
             safe_send_message(
                 callback_query.message.chat.id,
-safe_get_messages(user_id).KEYBOARD_1X3_ACTIVATED_MSG,
-                reply_markup=ReplyKeyboardMarkup(one_by_three, resize_keyboard=True),
+                safe_get_messages(user_id).KEYBOARD_1X3_ACTIVATED_MSG,
+                reply_markup=ReplyKeyboardMarkup(compact, resize_keyboard=True),
                 reply_parameters=ReplyParameters(message_id=callback_query.message.id)
             )
         elif setting == "2x3":
-            two_by_three = [
-                ["/clean", "/cookie", "/settings"],
-                ["/playlist", "/search", "/help"]
-            ]
+            compact = [["/settings", "/playlist"]]
             safe_send_message(
                 callback_query.message.chat.id,
-safe_get_messages(user_id).KEYBOARD_2X3_ACTIVATED_MSG,
-                reply_markup=ReplyKeyboardMarkup(two_by_three, resize_keyboard=True),
+                safe_get_messages(user_id).KEYBOARD_2X3_ACTIVATED_MSG,
+                reply_markup=ReplyKeyboardMarkup(compact, resize_keyboard=True),
                 reply_parameters=ReplyParameters(message_id=callback_query.message.id)
             )
         elif setting == "FULL":
             emoji_keyboard = [
-                ["🧹", "🍪", "⚙️", "🌐", "🖼", "🔍", "🧰"],
-                ["📼", "📊", "✂️", "🎧", "💬", "🌎", "🔞"],
-                ["#️⃣", "🆘", "📃", "⏯️", "🎹", "🔗", "🧾"]
+                ["⚙️", "⏯️"]
             ]
             safe_send_message(
                 callback_query.message.chat.id,
-safe_get_messages(user_id).KEYBOARD_EMOJI_ACTIVATED_MSG,
+                safe_get_messages(user_id).KEYBOARD_EMOJI_ACTIVATED_MSG,
                 reply_markup=ReplyKeyboardMarkup(emoji_keyboard, resize_keyboard=True),
                 reply_parameters=ReplyParameters(message_id=callback_query.message.id)
             )
@@ -227,7 +221,7 @@ def apply_keyboard_setting(app, chat_id, setting, message_id=None, user_id=None)
                 reply_markup=ReplyKeyboardRemove(selective=False)
             )
         elif setting == "1x3":
-            one_by_three = [["/clean", "/cookie", "/settings"]]
+            one_by_three = [["/settings", "/playlist"]]
             # Send keyboard change as a separate message since it's a visual change
             safe_send_message(
                 chat_id,
@@ -236,8 +230,7 @@ safe_get_messages(user_id).KEYBOARD_1X3_ACTIVATED_MSG,
             )
         elif setting == "2x3":
             two_by_three = [
-                ["/clean", "/cookie", "/settings"],
-                ["/playlist", "/search", "/help"]
+                ["/settings", "/playlist"]
             ]
             # Send keyboard change as a separate message since it's a visual change
             safe_send_message(
@@ -247,9 +240,7 @@ safe_get_messages(user_id).KEYBOARD_2X3_ACTIVATED_MSG,
             )
         elif setting == "FULL":
             emoji_keyboard = [
-                ["🧹", "🍪", "⚙️", "🌐", "🖼", "🔍", "🧰"],
-                ["📼", "📊", "✂️", "🎧", "💬", "🌎", "🔞"],
-                ["#️⃣", "🆘", "📃", "⏯️", "🎹", "🔗", "🧾"]
+                ["⚙️", "⏯️"]
             ]
             # Send keyboard change as a separate message since it's a visual change
             safe_send_message(

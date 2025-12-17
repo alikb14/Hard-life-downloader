@@ -26,27 +26,20 @@ def lang_command_handler(update, context):
     
     # Parse command arguments
     args = context.args
+    available_languages = language_router.get_available_languages()
     
     # Check if language argument is provided
     if args and len(args) >= 1:
         lang_arg = args[0].lower()
-        
-        # Supported language codes
-        supported_langs = {
-            'en': 'English',
-            'ru': 'Русский', 
-            'ar': 'العربية',
-            'in': 'हिन्दी'
-        }
-        
-        if lang_arg in supported_langs:
+
+        if lang_arg in available_languages:
             # Quick language switch
             success = set_user_language(user_id, lang_arg)
             
             if success:
                 # Get messages in new language
                 new_messages = get_messages(language_code=lang_arg)
-                lang_name = supported_langs[lang_arg]
+                lang_name = available_languages[lang_arg]
                 
                 # Send confirmation message
                 confirmation_msg = getattr(new_messages, 'LANG_CHANGED_MSG', 
@@ -72,8 +65,9 @@ def lang_command_handler(update, context):
         else:
             # Invalid language code
             messages = get_messages(user_id)
-            error_msg = getattr(messages, 'LANG_INVALID_ARGUMENT_MSG', 
-                "❌ Invalid language code. Supported: en, ru, ar, in"
+            supported_list = ", ".join(available_languages.keys())
+            error_msg = getattr(messages, 'LANG_INVALID_ARGUMENT_MSG',
+                f"❌ Invalid language code. Supported: {supported_list}"
             )
             update.message.reply_text(error_msg)
             return
@@ -84,9 +78,6 @@ def lang_command_handler(update, context):
     
     # Create language selection keyboard
     keyboard = []
-    available_languages = language_router.get_available_languages()
-    
-    # Create buttons for each language (2 per row)
     lang_items = list(available_languages.items())
     for i in range(0, len(lang_items), 2):
         row = []
@@ -109,14 +100,9 @@ def lang_command_handler(update, context):
         'inline_keyboard': keyboard
     }
     
-    # Send language selection message
-    lang_selection_msg = getattr(messages, 'LANG_SELECTION_MSG', 
-        "🌍 <b>Выберите язык / Select Language</b>\n\n"
-        "🇺🇸 English\n"
-        "🇷🇺 Русский\n" 
-        "🇸🇦 العربية\n"
-        "🇮🇳 हिन्दी"
-    )
+    # Send language selection message (already contains languages in LANG_SELECTION_MSG)
+    lang_selection_msg = getattr(messages, 'LANG_SELECTION_MSG',
+        "🌍 <b>Выберите язык / Select Language</b>")
     
     update.message.reply_text(
         lang_selection_msg,
@@ -137,27 +123,20 @@ def lang_command(app, message):
     
     # Parse command arguments
     parts = (message.text or "").split()
+    available_languages = language_router.get_available_languages()
     
     # Check if language argument is provided
     if len(parts) >= 2:
         lang_arg = parts[1].lower()
-        
-        # Supported language codes
-        supported_langs = {
-            'en': 'English',
-            'ru': 'Русский', 
-            'ar': 'العربية',
-            'in': 'हिन्दी'
-        }
-        
-        if lang_arg in supported_langs:
+
+        if lang_arg in available_languages:
             # Quick language switch
             success = set_user_language(user_id, lang_arg)
             
             if success:
                 # Get messages in new language
                 new_messages = safe_get_messages(user_id)
-                lang_name = supported_langs[lang_arg]
+                lang_name = available_languages[lang_arg]
                 
                 # Send confirmation message
                 confirmation_msg = getattr(new_messages, 'LANG_CHANGED_MSG', 
@@ -185,8 +164,9 @@ def lang_command(app, message):
         else:
             # Invalid language code
             messages = safe_get_messages(user_id)
-            error_msg = getattr(messages, 'LANG_INVALID_ARGUMENT_MSG', 
-                "❌ Invalid language code. Supported: en, ru, ar, in"
+            supported_list = ", ".join(available_languages.keys())
+            error_msg = getattr(messages, 'LANG_INVALID_ARGUMENT_MSG',
+                f"❌ Invalid language code. Supported: {supported_list}"
             )
             safe_send_message(user_id, error_msg, message=message)
             return
@@ -197,9 +177,6 @@ def lang_command(app, message):
     
     # Create language selection keyboard
     keyboard = []
-    available_languages = language_router.get_available_languages()
-    
-    # Create buttons for each language (2 per row)
     lang_items = list(available_languages.items())
     for i in range(0, len(lang_items), 2):
         row = []
@@ -220,14 +197,9 @@ def lang_command(app, message):
     
     reply_markup = InlineKeyboardMarkup(keyboard)
     
-    # Send language selection message
+    # Send language selection message (already contains languages in LANG_SELECTION_MSG)
     lang_selection_msg = getattr(messages, 'LANG_SELECTION_MSG', 
-        "🌍 <b>Выберите язык / Select Language</b>\n\n"
-        "🇺🇸 English\n"
-        "🇷🇺 Русский\n" 
-        "🇸🇦 العربية\n"
-        "🇮🇳 हिन्दी"
-    )
+        "🌍 <b>Выберите язык / Select Language</b>")
     
     safe_send_message(
         message.chat.id,

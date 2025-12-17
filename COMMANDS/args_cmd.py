@@ -1157,6 +1157,8 @@ def parse_import_message(text: str, user_id: int = None) -> Dict[str, Any]:
 @app.on_message(filters.command("args"))
 @background_handler(label="args_command")
 def args_command(app, message):
+    # Disabled command
+    return
     messages = get_messages_instance(message.chat.id)
     """Handle /args command"""
     chat_id = message.chat.id

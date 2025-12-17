@@ -15,9 +15,11 @@ import requests
 import logging
 
 from CONFIG.config import Config
+from HELPERS.bot_namespace import get_bot_namespace
 
 logger = logging.getLogger(__name__)
 BASE_DIR = Path(__file__).resolve().parent.parent
+BOT_NAMESPACE = get_bot_namespace()
 
 # --------------------------------------------------------------------------------------
 # Утилиты
@@ -382,10 +384,7 @@ class StatsCollector:
         except Exception as exc:
             logger.error(f"[stats] unable to read dump {self.dump_path}: {exc}")
             return
-        bot_root = (
-            data.get("bot", {})
-            .get(getattr(Config, "BOT_NAME_FOR_USERS", "tgytdlp_bot"), {})
-        )
+        bot_root = data.get("bot", {}).get(BOT_NAMESPACE, {})
         download_records: List[DownloadRecord] = []
         first_seen: Dict[int, int] = {}
         blocked_users: Dict[int, BlockRecord] = {}
@@ -726,7 +725,7 @@ class StatsCollector:
         if len(parts) < 3:
             return
         _, bot_name, section, *rest = parts
-        if bot_name != getattr(Config, "BOT_NAME_FOR_USERS", bot_name):
+        if bot_name != BOT_NAMESPACE:
             return
         if section == "logs" and rest and operation in {"set", "update"} and isinstance(payload, dict):
             user_id = _safe_int(rest[0])
@@ -1078,10 +1077,7 @@ class StatsCollector:
             logger.error(f"[stats] unable to read dump {self.dump_path}: {exc}")
             return result
         
-        bot_root = (
-            data.get("bot", {})
-            .get(getattr(Config, "BOT_NAME_FOR_USERS", "tgytdlp_bot"), {})
-        )
+        bot_root = data.get("bot", {}).get(BOT_NAMESPACE, {})
         
         logs = bot_root.get("logs", {})
         if not isinstance(logs, dict):
@@ -1204,4 +1200,3 @@ stats_collector = StatsCollector()
 
 def get_stats_collector() -> StatsCollector:
     return stats_collector
-

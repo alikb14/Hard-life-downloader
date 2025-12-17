@@ -6,16 +6,14 @@ from typing import Dict, List, Any
 from CONFIG.config import Config
 from DATABASE.firebase_init import db
 from HELPERS.channel_guard import get_channel_guard
+from HELPERS.bot_namespace import config_path_parts, namespaced_path
 from HELPERS.logger import logger
 from services.stats_collector import get_stats_collector
 
 
 def _db_node(suffix: str):
-    base = getattr(Config, "BOT_DB_PATH", f"bot/{getattr(Config, 'BOT_NAME_FOR_USERS', 'tgytdlp_bot')}")
-    base = base.rstrip("/")
-    suffix = suffix.lstrip("/")
-    path = f"{base}/{suffix}" if suffix else base
-    return db.child(path)
+    path_parts = config_path_parts(namespaced_path(Config.BOT_DB_PATH, suffix))
+    return db.child(*path_parts)
 
 
 def fetch_active_users(limit: int = 10, minutes: int | None = None) -> Dict[str, Any]:
@@ -117,4 +115,3 @@ def unblock_user(user_id: int) -> None:
     guard = get_channel_guard()
     if guard:
         guard.record_manual_unblock(user_id)
-

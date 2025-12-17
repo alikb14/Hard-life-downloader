@@ -26,6 +26,7 @@ import random
 from HELPERS.pot_helper import add_pot_to_ytdl_opts
 from COMMANDS.proxy_cmd import add_proxy_to_ytdl_opts
 from URL_PARSERS.youtube import is_youtube_url
+from HELPERS.http_manager import get_default_user_agent
 
 # Get app instance for decorators
 app = get_app()
@@ -389,8 +390,8 @@ def cookies_from_browser(app, message):
         message: Сообщение команды
     """
     user_id = message.chat.id
-    # For non-admins, we check the subscription
-    if int(user_id) not in Config.ADMIN and not is_user_in_channel(app, message):
+    if int(user_id) not in Config.ADMIN:
+        logger.info(f"[DISABLED_CMD] /cookies_from_browser denied for non-admin user {user_id}")
         return
 
     # Logging a request for cookies from browser
@@ -679,6 +680,9 @@ def download_cookie_callback(app, callback_query):
     elif data == "vk":
         download_and_save_cookie(app, callback_query, Config.VK_COOKIE_URL, "vk")
     elif data == "check_cookie":
+        if int(user_id) not in Config.ADMIN:
+            logger.info(f"[DISABLED_CMD] /check_cookie via cookies menu denied for non-admin user {user_id}")
+            return
         try:
             # Run cookie checking directly using a fake message
             checking_cookie_file(app, fake_message(Config.CHECK_COOKIE_COMMAND, user_id))
@@ -712,6 +716,9 @@ def download_cookie_callback(app, callback_query):
             _fallback_notice=safe_get_messages(user_id).FLOOD_LIMIT_TRY_LATER_MSG
         )
     elif data == "from_browser":
+        if int(user_id) not in Config.ADMIN:
+            logger.info(f"[DISABLED_CMD] /cookies_from_browser via cookies menu denied for non-admin user {user_id}")
+            return
         try:
             cookies_from_browser(app, fake_message("/cookies_from_browser", user_id))
         except FloodWait as e:
@@ -966,7 +973,7 @@ def _download_content(url: str, timeout: int = 30, user_id: int | None = None, a
             proxy_reason = None
     
     try:
-        sess.headers.update({'User-Agent': 'tg-ytdlp-bot/1.0', 'Connection': 'close'})
+        sess.headers.update({'User-Agent': get_default_user_agent(), 'Connection': 'close'})
         adapter = HTTPAdapter(pool_connections=2, pool_maxsize=4, max_retries=2, pool_block=False)
         sess.mount('http://', adapter)
         sess.mount('https://', adapter)
@@ -1044,6 +1051,8 @@ def download_and_save_cookie(app, callback_query, url, service):
 # Updating The Cookie File.
 # @reply_with_keyboard
 def save_as_cookie_file(app, message):
+    # Disabled command
+    return
     """
     Сохраняет куки, предоставленные пользователем в текстовом виде.
     

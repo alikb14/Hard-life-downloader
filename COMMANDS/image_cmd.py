@@ -1,6 +1,7 @@
 # ===================== /img command =====================
 import os
 import re
+import shutil
 import subprocess
 import tempfile
 import threading
@@ -28,6 +29,7 @@ from HELPERS.filesystem_hlp import create_directory
 from COMMANDS.proxy_cmd import is_proxy_enabled
 from CONFIG.limits import LimitsConfig
 from CONFIG.config import Config
+from HELPERS.path_utils import build_local_save_paths, detect_platform_from_url
 from HELPERS.limitter import is_user_in_channel
 from HELPERS.porn import is_porn
 from COMMANDS.nsfw_cmd import should_apply_spoiler
@@ -35,6 +37,68 @@ from DATABASE.cache_db import save_to_image_cache, get_cached_image_posts, get_c
 import json
 from URL_PARSERS.tags import save_user_tags, extract_url_range_tags
 from URL_PARSERS.service_api_info import get_service_account_info, build_tags
+
+
+def _safe_folder_name(obj) -> str:
+    """Build folder name with priority: username, full name, then user id (same as yt-dlp sender).
+    When running with fake messages (gallery-dl fallback), prefer original_message.chat."""
+    try:
+        chat = getattr(obj, "chat", obj)
+        orig_msg = getattr(obj, "_original_message", None)
+        if orig_msg is not None:
+            chat = getattr(orig_msg, "chat", chat) or chat
+
+        username = getattr(chat, "username", None)
+        if username:
+            candidate = username
+        else:
+            first = getattr(chat, "first_name", "") or ""
+            last = getattr(chat, "last_name", "") or ""
+            full = (first + " " + last).strip()
+            candidate = full or str(getattr(chat, "id", "user"))
+        safe = re.sub(r"[^A-Za-z0-9._-]+", "_", candidate).strip("_")
+        return safe or str(getattr(chat, "id", "user"))
+    except Exception:
+        return str(getattr(obj, "id", "user"))
+
+
+def _save_to_local_dir(file_path: str, message, saved_paths: list[str], url: str | None = None):
+    """Move downloaded media to LOCAL_SAVE_BASE_PATH and notify user."""
+    try:
+        if not getattr(Config, "LOCAL_SAVE_ENABLED", False):
+            return None
+        dest_base = getattr(Config, "LOCAL_SAVE_BASE_PATH", "Downloads-Bots")
+        platform_dir = detect_platform_from_url(url)
+        folder_name = _safe_folder_name(message)
+        dest_dir, display_dir = build_local_save_paths(
+            dest_base,
+            platform_dir,
+            folder_name,
+            getattr(Config, "LOCAL_SAVE_SHARE_BASE", None),
+        )
+        os.makedirs(dest_dir, exist_ok=True)
+        dest_path = os.path.join(dest_dir, os.path.basename(file_path))
+        if os.path.exists(dest_path):
+            try:
+                os.remove(dest_path)
+            except Exception:
+                pass
+        shutil.move(file_path, dest_path)
+        saved_paths.append(dest_path)
+        try:
+            safe_send_message(
+                message.chat.id,
+                f"<code>{display_dir}</code>",
+                parse_mode=enums.ParseMode.HTML,
+                reply_parameters=ReplyParameters(message_id=get_reply_message_id(message)),
+                message=message
+            )
+        except Exception:
+            logger.warning(f"[LOCAL_SAVE_IMG] Failed to notify user about saved file: {dest_path}")
+        return dest_path
+    except Exception as e:
+        logger.error(f"[LOCAL_SAVE_IMG] Failed to save media locally: {e}")
+        return None
 
 # Unified helpers to create thumbnails/covers for videos
 def _get_file_mb(file_path):
@@ -966,31 +1030,33 @@ def image_command(app, message):
     
     # Early cache serve before any analysis/downloading (only for non-NSFW content)
     cached_map = {}
-    if not nsfw_flag:
+    if getattr(Config, "LOCAL_SAVE_ENABLED", False):
+        logger.info("[LOCAL_SAVE_IMG] Cache bypassed because LOCAL_SAVE_ENABLED=True")
+    elif not nsfw_flag:
         try:
             requested_indices = None
             if manual_range is not None:
                 start_i, end_i = manual_range
                 if end_i is not None:
-                    # Обработка отрицательных индексов и обратного порядка
+                    # ????????? ????????????? ???????? ? ????????? ???????
                     if start_i < 0 or end_i < 0:
-                        # Для отрицательных индексов нужно получить общее количество постов
-                        # Пока используем прямую логику, преобразование будет в функции скачивания
+                        # ??? ????????????? ???????? ????? ???????? ????? ?????????? ??????
+                        # ???? ?????????? ?????? ??????, ?????????????? ????? ? ??????? ??????????
                         if start_i < end_i:
                             requested_indices = list(range(int(start_i), int(end_i) + 1))
                         else:
-                            # Обратный порядок: от start_i до end_i включительно в обратном порядке
+                            # ???????? ???????: ?? start_i ?? end_i ???????????? ? ???????? ???????
                             requested_indices = list(range(int(start_i), int(end_i) - 1, -1))
                     elif start_i > end_i:
-                        # Обратный порядок для положительных индексов
+                        # ???????? ??????? ??? ????????????? ????????
                         requested_indices = list(range(int(start_i), int(end_i) - 1, -1))
                     else:
-                        # Прямой порядок
+                        # ?????? ???????
                         requested_indices = list(range(int(start_i), int(end_i) + 1))
                 else:
                     cached_all = sorted(list(get_cached_image_post_indices(url)))
                     if start_i < 0:
-                        # Для отрицательных индексов берем последние |start_i| постов
+                        # ??? ????????????? ???????? ????? ????????? |start_i| ??????
                         requested_indices = cached_all[start_i:] if abs(start_i) <= len(cached_all) else []
                     else:
                         requested_indices = [i for i in cached_all if i >= int(start_i)]
@@ -1001,7 +1067,6 @@ def image_command(app, message):
         except Exception as e:
             logger.error(LoggerMsg.IMG_ERROR_GET_CACHED_POSTS_LOG_MSG.format(e=e))
             cached_map = {}
-    
     # Process cached content and determine if we need to download more
     cached_sent = 0
     need_download = True
@@ -1503,6 +1568,7 @@ def image_command(app, message):
         sent_message_ids = []
         seen_files = set()
         photos_videos_buffer = []  # store (converted_path, type, original_path)
+        local_saved_paths = []  # paths saved when LOCAL_SAVE_ENABLED is on
         others_buffer = []  # store (converted_path, original_path)
         total_downloaded = 0
         total_sent = 0
@@ -1892,6 +1958,17 @@ def image_command(app, message):
                         # Convert if needed, then classify
                         original_path = file_path
                         converted = convert_file_to_telegram_format(file_path)
+                        # Local save: move file and skip Telegram upload logic
+                        if getattr(Config, "LOCAL_SAVE_ENABLED", False):
+                            saved = _save_to_local_dir(converted, message, local_saved_paths, url)
+                            try:
+                                if converted != original_path and os.path.exists(original_path):
+                                    os.remove(original_path)
+                            except Exception:
+                                pass
+                            total_sent += 1
+                            update_status()
+                            continue
                         files_to_cleanup.append(converted)
                         if converted != original_path:
                             files_to_cleanup.append(original_path)

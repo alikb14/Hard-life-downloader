@@ -3,6 +3,7 @@ import re
 from typing import Tuple
 from CONFIG.config import Config
 from CONFIG.messages import Messages, safe_get_messages
+from HELPERS.bot_namespace import get_bot_namespace
 from HELPERS.app_instance import get_app
 from HELPERS.logger import send_to_logger
 from pyrogram import filters
@@ -74,7 +75,7 @@ def truncate_caption(
 
     tags_block = (tags_text.strip() + '\n') if tags_text and tags_text.strip() else ''
     # --- Add bot name next to the link ---
-    bot_name = getattr(Config, 'BOT_NAME', None) or 'bot'
+    bot_name = getattr(Config, 'BOT_NAME', None) or get_bot_namespace()
     bot_mention = f' @{bot_name}' if not bot_name.startswith('@') else f' {bot_name}'
     link_block = safe_get_messages(user_id).CAPTION_VIDEO_URL_LINK_MSG.format(url=url, bot_mention=bot_mention)
     

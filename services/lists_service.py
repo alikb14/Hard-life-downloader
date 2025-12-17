@@ -8,6 +8,7 @@ from typing import Dict, Any, List
 
 from CONFIG.domains import DomainsConfig
 from CONFIG.config import Config
+from HELPERS.bot_namespace import get_bot_namespace
 
 
 def get_file_line_count(file_path: str) -> int:
@@ -114,7 +115,7 @@ def update_domain_list(list_name: str, items: List[str]) -> bool:
 def update_lists() -> Dict[str, Any]:
     """Обновляет списки через script.sh."""
     try:
-        script_path = "/root/Telegram/tg-ytdlp-bot/script.sh"
+        script_path = f"/root/Telegram/{get_bot_namespace()}/script.sh"
         result = subprocess.run(
             ["bash", script_path],
             capture_output=True,
@@ -128,4 +129,3 @@ def update_lists() -> Dict[str, Any]:
             return {"status": "error", "message": result.stderr or "Failed to update lists"}
     except Exception as e:
         return {"status": "error", "message": str(e)}
-

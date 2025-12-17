@@ -133,30 +133,29 @@ def url_distractor(app, message):
     except Exception:
         pass
 
+    # Block disabled commands globally
+    disabled_commands = {
+        "/cookies_from_browser", "/audio",
+        "/split", "/search", "/proxy", "/keyboard", "/tags", "/list",
+        "/usage", "/block_user", "/unblock_user", "/uncache", "/ban_time",
+        "/run_time", "/reload_cache", "/auto_cache", "/nsfw", "/args",
+        "/clean", "/update_porn", "/reload_porn", "/check_porn", "/help"
+    }
+    base_cmd = text.split()[0] if text else ""
+    if base_cmd in disabled_commands:
+        logger.info(f"[DISABLED_CMD] Ignored command {base_cmd} from user {user_id}")
+        return
+
     # Emoji keyboard mapping to commands (from FULL layout)
     emoji_to_command = {
-        "🧹": Config.CLEAN_COMMAND,
-        "🍪": Config.DOWNLOAD_COOKIE_COMMAND,
-        "⚙️": Config.SETTINGS_COMMAND,
-        "🔍": Config.SEARCH_COMMAND,
-        "🌐": Config.COOKIES_FROM_BROWSER_COMMAND,
-        "🔗": Config.LINK_COMMAND,
+        # Disabled commands removed from emoji map
+        "🆘": "/help",
         "📼": Config.FORMAT_COMMAND,
         "📊": Config.MEDIINFO_COMMAND,
-        "✂️": Config.SPLIT_COMMAND,
-        "🎧": Config.AUDIO_COMMAND,
         "💬": Config.SUBS_COMMAND,
-        "#️⃣": Config.TAGS_COMMAND,
-        "🆘": "/help",
-        "📃": Config.USAGE_COMMAND,
         "⏯️": Config.PLAYLIST_COMMAND,
-        "🎹": Config.KEYBOARD_COMMAND,
-        "🌎": Config.PROXY_COMMAND,
         "✅": Config.CHECK_COOKIE_COMMAND,
         "🖼": Config.IMG_COMMAND,
-        "🧰": Config.ARGS_COMMAND,
-        "🔞": Config.NSFW_COMMAND,
-        "🧾": Config.LIST_COMMAND,
     }
 
     if text in emoji_to_command:
@@ -165,6 +164,9 @@ def url_distractor(app, message):
         from HELPERS.safe_messeger import fake_message
         fake_msg = fake_message(mapped, user_id)
         fake_msg._is_emoji_command = True  # Mark as emoji command to prevent recursion
+        if mapped in disabled_commands:
+            logger.info(f"[DISABLED_CMD] Emoji command {mapped} ignored for user {user_id}")
+            return
         
         # Special case: headphones emoji should work exactly like /audio command
         if mapped == Config.AUDIO_COMMAND:
@@ -256,7 +258,9 @@ def url_distractor(app, message):
             from COMMANDS.search import search_command
             return search_command(app, fake_msg)
         elif mapped == Config.COOKIES_FROM_BROWSER_COMMAND:
-            from COMMANDS.cookies_cmd import cookies_from_browser
+            if not is_admin:
+                logger.info(f"[DISABLED_CMD] /cookies_from_browser via emoji denied for non-admin user {user_id}")
+                return
             return cookies_from_browser(app, fake_msg)
         elif mapped == Config.LINK_COMMAND:
             from COMMANDS.link_cmd import link_command
@@ -286,8 +290,10 @@ def url_distractor(app, message):
             from COMMANDS.proxy_cmd import proxy_command
             return proxy_command(app, fake_msg)
         elif mapped == Config.CHECK_COOKIE_COMMAND:
-            from COMMANDS.cookies_cmd import check_cookie_command
-            return check_cookie_command(app, fake_msg)
+            if not is_admin:
+                logger.info(f"[DISABLED_CMD] /check_cookie via emoji denied for non-admin user {user_id}")
+                return
+            return checking_cookie_file(app, fake_msg)
         elif mapped == Config.IMG_COMMAND:
             from COMMANDS.image_cmd import image_command
             return image_command(app, fake_msg)
@@ -311,22 +317,14 @@ def url_distractor(app, message):
             if not is_user_in_channel(app, fake_msg):
                 return
             from HELPERS.safe_messeger import safe_send_message
-            from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
             from CONFIG.messages import safe_get_messages
-            keyboard = InlineKeyboardMarkup([
-                [
-                    InlineKeyboardButton(safe_get_messages(user_id).SETTINGS_DEV_GITHUB_BUTTON_MSG, url="https://github.com/upekshaip/tg-ytdlp-bot"),
-                    InlineKeyboardButton(safe_get_messages(user_id).SETTINGS_CONTR_GITHUB_BUTTON_MSG, url="https://github.com/chelaxian/tg-ytdlp-bot")
-                ],
-                [InlineKeyboardButton(safe_get_messages(user_id).URL_EXTRACTOR_HELP_CLOSE_BUTTON_MSG, callback_data="help_msg|close")]
-            ])
             try:
                 safe_send_message(fake_msg.chat.id, (safe_get_messages(user_id).HELP_MSG),
                                  parse_mode=enums.ParseMode.HTML,
-                                 reply_markup=keyboard,
+                                 reply_markup=None,
                                  message=fake_msg)
             except Exception:
-                safe_send_message(fake_msg.chat.id, (safe_get_messages(user_id).HELP_MSG), reply_markup=keyboard, message=fake_msg)
+                safe_send_message(fake_msg.chat.id, (safe_get_messages(user_id).HELP_MSG), reply_markup=None, message=fake_msg)
             return
         else:
             # Unknown emoji command - do nothing
@@ -393,22 +391,15 @@ def url_distractor(app, message):
         if not is_user_in_channel(app, message):
             return  # is_user_in_channel already sends subscription message
         # User is subscribed or admin, send help message
-        keyboard = InlineKeyboardMarkup([
-            [
-                InlineKeyboardButton(safe_get_messages(user_id).SETTINGS_DEV_GITHUB_BUTTON_MSG, url="https://github.com/upekshaip/tg-ytdlp-bot"),
-                InlineKeyboardButton(safe_get_messages(user_id).SETTINGS_CONTR_GITHUB_BUTTON_MSG, url="https://github.com/chelaxian/tg-ytdlp-bot")
-            ],
-            [InlineKeyboardButton(safe_get_messages(user_id).URL_EXTRACTOR_HELP_CLOSE_BUTTON_MSG, callback_data="help_msg|close")]
-        ])
         from HELPERS.safe_messeger import safe_send_message
         try:
             safe_send_message(message.chat.id, (safe_get_messages(user_id).HELP_MSG),
                              parse_mode=enums.ParseMode.HTML,
-                             reply_markup=keyboard,
+                             reply_markup=None,
                              message=message)
         except Exception:
             # Fallback without parse_mode if enums shadowed unexpectedly
-            safe_send_message(message.chat.id, (safe_get_messages(user_id).HELP_MSG), reply_markup=keyboard, message=message)
+            safe_send_message(message.chat.id, (safe_get_messages(user_id).HELP_MSG), reply_markup=None, message=message)
         send_to_logger(message, LoggerMsg.HELP_SENT_TO_USER)
         return
 
@@ -691,11 +682,17 @@ def url_distractor(app, message):
 
     # /Check_cookie Command
     if text == Config.CHECK_COOKIE_COMMAND:
+        if not is_admin:
+            logger.info(f"[DISABLED_CMD] /check_cookie denied for non-admin user {user_id}")
+            return
         checking_cookie_file(app, message)
         return
 
     # /cookies_from_browser Command
     if text.startswith(Config.COOKIES_FROM_BROWSER_COMMAND):
+        if not is_admin:
+            logger.info(f"[DISABLED_CMD] /cookies_from_browser denied for non-admin user {user_id}")
+            return
         cookies_from_browser(app, message)
         return
 

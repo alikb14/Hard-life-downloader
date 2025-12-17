@@ -8,15 +8,25 @@ import time
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
+from CONFIG.config import Config
 from CONFIG.limits import LimitsConfig
+from HELPERS.bot_namespace import get_bot_namespace
 from HELPERS.logger import logger
+
+
+def get_default_user_agent() -> str:
+    """Build a user agent string using configured bot identifiers."""
+    bot_name = str(getattr(Config, "BOT_NAME", "")).strip()
+    if not bot_name:
+        bot_name = get_bot_namespace()
+    return f"{bot_name}/1.0"
 
 
 class ManagedHTTPSession:
     """
     HTTP Session with automatic cleanup and connection lifetime limits
     """
-    
+
     def __init__(self, session_name="default", max_lifetime=None):
         self.session_name = session_name
         self.max_lifetime = max_lifetime or LimitsConfig.MAX_HTTP_CONNECTION_LIFETIME
@@ -25,14 +35,18 @@ class ManagedHTTPSession:
         self._lock = threading.Lock()
         self._cleanup_thread = None
         self._stop_cleanup = threading.Event()
-        
+
+    def _user_agent(self) -> str:
+        """Build a user agent string using configured bot identifiers."""
+        return get_default_user_agent()
+
     def _create_session(self):
         """Create a new requests session with proper configuration"""
         session = requests.Session()
-        
+
         # Set headers to minimize connection reuse
         session.headers.update({
-            'User-Agent': 'tg-ytdlp-bot/1.0',
+            'User-Agent': self._user_agent(),
             'Connection': 'close'  # Force close connections
         })
         

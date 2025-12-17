@@ -49,6 +49,8 @@ def help_msg_callback(app, callback_query):
 # @reply_with_keyboard
 @background_handler(label="audio_command")
 def audio_command_handler(app, message):
+    # Disabled command
+    return
     messages = safe_get_messages(message.chat.id)
     user_id = message.chat.id
     if get_active_download(user_id):
@@ -194,7 +196,6 @@ def audio_hint_callback(app, callback_query):
         callback_query.answer(safe_get_messages(user_id).AUDIO_HELP_CLOSED_MSG)
         send_to_logger(callback_query.message, safe_get_messages(user_id).AUDIO_HINT_CLOSED_LOG_MSG)
         return
-
 
 
 

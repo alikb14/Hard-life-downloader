@@ -78,6 +78,7 @@ import chardet
 # CONFIG
 from CONFIG.config import Config
 from CONFIG.messages import Messages, safe_get_messages
+from HELPERS.bot_namespace import ensure_bot_namespace
 # from test_config import Config
 
 # HELPERS (только те, что не содержат обработчики)
@@ -95,6 +96,9 @@ from HELPERS.safe_messeger import *
 ###########################################################
 #        APP INITIALIZATION
 ###########################################################
+# Validate namespace configuration before using it anywhere else
+ensure_bot_namespace()
+
 # Pyrogram App Initialization
 app = Client(
     "magic",

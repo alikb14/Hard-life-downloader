@@ -4931,24 +4931,7 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
             
             return "\n".join(hints)
         
-        # We need to create action_buttons first to determine which hints to show
-        # This will be done later in the code, so for now we'll use the old logic
-        # but we'll replace it after action_buttons are created
-        # Temporary hint for now - will be replaced later
-        temp_hint = (
-            f"<pre language=\"info\">{safe_get_messages(user_id).ALWAYS_ASK_CHANGE_VIDEO_EXT_MSG}"
-            + paid_hint
-            + repost_line
-            + watch_hint
-            + link_hint
-            + list_hint
-            + image_hint
-            + subs_hint
-            + subs_warn
-            + dubs_hint
-            + "</pre>"
-        )
-        cap += f"\n{temp_hint}\n"
+        # Remove info/hints block from quality menu to keep it minimal
         buttons = []
         # Sort buttons by quality from lowest to highest
         if ("youtube.com" in url or "youtu.be" in url):
@@ -5197,26 +5180,8 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
                     keyboard_rows.append(buttons[i:i+3])
         
         # Add WATCH button for YouTube links - always add to action_buttons for consistent placement
-        try:
-            if is_youtube_url(url):
-                logger.info(f"Processing YouTube URL for WATCH button: {url}")
-                piped_url = youtube_to_piped_url(url)
-                logger.info(f"Converted to Piped URL: {piped_url}")
-                # Check if this is a group (negative user_id)
-                try:
-                    is_group = isinstance(user_id, int) and user_id < 0
-                except Exception:
-                    is_group = False
-                if is_group:
-                    action_buttons.append(InlineKeyboardButton(safe_get_messages(user_id).ALWAYS_ASK_WATCH_BUTTON_MSG, url=piped_url))
-                else:
-                    wa = WebAppInfo(url=piped_url)
-                    action_buttons.append(InlineKeyboardButton(safe_get_messages(user_id).ALWAYS_ASK_WATCH_BUTTON_MSG, web_app=wa))
-                logger.info(f"Added WATCH button to action_buttons for user {user_id}")
-        except Exception as e:
-            logger.error(f"Error adding WATCH button for user {user_id}: {e}")
-            pass
-        
+        # WATCH mini-app/button disabled per request
+       
         # --- button subtitles only ---
         # Show the button only if subtitles are turned on and it is youtube
         subs_enabled = is_subs_enabled(user_id)
@@ -5368,18 +5333,9 @@ def ask_quality_menu(app, message, url, tags, playlist_start_index=1, cb=None, d
         if get_filters(user_id).get("has_dubs") and "🗣" in used_emojis:
             dynamic_hints.append(safe_get_messages(user_id).ALWAYS_ASK_CHOOSE_AUDIO_LANGUAGE_MSG)
         
-        # Replace the old hint in cap with dynamic one
-        dynamic_hint_text = "<pre language=\"info\">" + "\n".join(dynamic_hints) + "</pre>"
-        
-        # Log final hints for debugging
-        logger.info(f"Final dynamic hints for user {user_id}: {dynamic_hints}")
-        
-        # Find and replace the old hint in cap
+        # Remove any existing hint block; we no longer show info/hints in the menu
         import re
-        # Remove old hint block
         cap = re.sub(r'<pre language="info">.*?</pre>', '', cap, flags=re.DOTALL)
-        # Add new dynamic hint with reduced spacing
-        cap += f"{dynamic_hint_text}\n"
         
         keyboard = InlineKeyboardMarkup(keyboard_rows)
         # cap now contains dynamic hints based on actual buttons

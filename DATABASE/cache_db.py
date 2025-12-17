@@ -20,6 +20,7 @@ from CONFIG.config import Config
 from CONFIG.messages import Messages, safe_get_messages
 from CONFIG.logger_msg import LoggerMsg
 from HELPERS.app_instance import get_app
+from HELPERS.bot_namespace import config_path_parts, get_bot_namespace, namespaced_path
 from HELPERS.logger import logger, send_to_user, send_to_logger
 
 from DATABASE.firebase_init import db
@@ -34,11 +35,70 @@ app = get_app()
 # Global variable for local cache Firebase
 firebase_cache = {}
 
+
 # Auto-reload flags and state
 auto_cache_enabled = getattr(Config, 'AUTO_CACHE_RELOAD_ENABLED', True)
 auto_cache_thread = None
 reload_interval_hours = getattr(Config, 'RELOAD_CACHE_EVERY', 4)
 _thread_lock = threading.RLock()
+
+# Namespace helpers
+def _normalize_path_parts(path_parts) -> list:
+    raw = path_parts if isinstance(path_parts, str) else "/".join(
+        str(part).strip("/") for part in path_parts if part is not None
+    )
+    return config_path_parts(raw)
+
+
+def _ensure_bot_cache_root() -> dict:
+    bot_root = firebase_cache.setdefault("bot", {})
+    namespace_root = bot_root.get(get_bot_namespace())
+    if not isinstance(namespace_root, dict):
+        namespace_root = {}
+        bot_root[get_bot_namespace()] = namespace_root
+    return namespace_root
+
+
+def _set_local_cache_value(path_parts, value) -> None:
+    parts = _normalize_path_parts(path_parts)
+    current = firebase_cache
+    for part in parts[:-1]:
+        if part not in current or not isinstance(current[part], dict):
+            current[part] = {}
+        current = current[part]
+    current[parts[-1]] = value
+
+
+def _remove_local_cache_entry(path_parts) -> bool:
+    parts = _normalize_path_parts(path_parts)
+    current = firebase_cache
+    for part in parts[:-1]:
+        if part in current and isinstance(current[part], dict):
+            current = current[part]
+        else:
+            return False
+    if parts[-1] in current:
+        del current[parts[-1]]
+        return True
+    return False
+
+
+def _ensure_namespaced_cache():
+    """Ensure in-memory cache is nested under the current bot namespace."""
+    global firebase_cache
+    bot_section = firebase_cache.get("bot")
+    if not isinstance(bot_section, dict):
+        return
+    namespace = get_bot_namespace()
+    target = bot_section.get(namespace)
+    if not isinstance(target, dict):
+        target = target if isinstance(target, dict) else {}
+        bot_section[namespace] = target
+    legacy_keys = [k for k in list(bot_section.keys()) if k != namespace]
+    for key in legacy_keys:
+        value = bot_section.pop(key, None)
+        if key not in target and value is not None:
+            target[key] = value
 
 ###################################################
 
@@ -60,15 +120,16 @@ def get_from_local_cache(path_parts):
     For example: get_from_local_cache (['Bot', 'Video_cache', 'Hash123', '720p'])
     """
     global firebase_cache
+    normalized_parts = _normalize_path_parts(path_parts)
     current = firebase_cache
-    for part in path_parts:
+    for part in normalized_parts:
         if isinstance(current, dict) and part in current:
             current = current[part]
         else:
-            log_firebase_access_attempt(path_parts, success=False)
+            log_firebase_access_attempt(normalized_parts, success=False)
             return None
     
-    log_firebase_access_attempt(path_parts, success=True)
+    log_firebase_access_attempt(normalized_parts, success=True)
     return current
 
 def log_firebase_access_attempt(path_parts, success=True):
@@ -76,7 +137,8 @@ def log_firebase_access_attempt(path_parts, success=True):
     Logs attempts to turn to a local cache (to track the remaining .get () calls)
     """
     # Show the path in JSON format for local cache
-    path_str = ' -> '.join(path_parts)  # For example: "bot -> video_cache -> playlists -> url_hash -> quality"
+    normalized_parts = _normalize_path_parts(path_parts)
+    path_str = ' -> '.join(normalized_parts)  # For example: "bot -> <namespace> -> video_cache -> playlists -> url_hash -> quality"
     status = "SUCCESS" if success else "MISS"
     try:
         logger.info(LoggerMsg.DB_FIREBASE_CACHE_ACCESS_LOG_MSG.format(path=path_str, status=status))
@@ -94,6 +156,7 @@ def load_firebase_cache():
         if os.path.exists(cache_file):
             with open(cache_file, "r", encoding="utf-8") as f:
                 firebase_cache = json.load(f)
+            _ensure_namespaced_cache()
             if use_firebase:
                 print(safe_get_messages().DB_FIREBASE_CACHE_LOADED_MSG.format(count=len(firebase_cache)))
             else:
@@ -121,6 +184,7 @@ def reload_firebase_cache():
         if os.path.exists(cache_file):
             with open(cache_file, "r", encoding="utf-8") as f:
                 firebase_cache = json.load(f)
+            _ensure_namespaced_cache()
             print(safe_get_messages().DB_FIREBASE_CACHE_RELOADED_MSG.format(count=len(firebase_cache)))
             return True
         else:
@@ -488,22 +552,14 @@ def save_to_playlist_cache(playlist_url: str, quality_key: str, video_indices: l
             logger.info(f"Using playlist URL hash: {url_hash}")
 
             if clear:
-                db_child_by_path(db, f"{Config.PLAYLIST_CACHE_DB_PATH}/{url_hash}/{quality_key}").remove()
+                cache_path = namespaced_path(Config.PLAYLIST_CACHE_DB_PATH, url_hash, quality_key)
+                db_child_by_path(db, cache_path).remove()
                 logger.info(f"Cleared playlist cache for hash={url_hash}, quality={quality_key}")
                 # Обновляем локальный кэш
                 use_firebase = getattr(Config, 'USE_FIREBASE', True)
                 if not use_firebase:
-                    path_parts_clear = ["bot", "video_cache", "playlists", url_hash, quality_key]
-                    current = firebase_cache
-                    for i, part in enumerate(path_parts_clear[:-1]):
-                        if part in current and isinstance(current[part], dict):
-                            current = current[part]
-                        else:
-                            break
-                    else:
-                        if path_parts_clear[-1] in current:
-                            del current[path_parts_clear[-1]]
-                            _sync_local_cache_to_file()
+                    if _remove_local_cache_entry([Config.PLAYLIST_CACHE_DB_PATH, url_hash, quality_key]):
+                        _sync_local_cache_to_file()
                 continue
 
             if not message_ids or not video_indices:
@@ -513,8 +569,8 @@ def save_to_playlist_cache(playlist_url: str, quality_key: str, video_indices: l
             for i, msg_id in zip(video_indices, message_ids):
                 encoded_index = encode_playlist_cache_index(i)
                 
-                path_parts_local = ["bot", "video_cache", "playlists", url_hash, quality_key, encoded_index]
-                path_parts = [Config.PLAYLIST_CACHE_DB_PATH, url_hash, quality_key, encoded_index]
+                path_parts_local = _normalize_path_parts([Config.PLAYLIST_CACHE_DB_PATH, url_hash, quality_key, encoded_index])
+                path_parts = _normalize_path_parts([Config.PLAYLIST_CACHE_DB_PATH, url_hash, quality_key, encoded_index])
                 already_cached = get_from_local_cache(path_parts_local)
 
                 if already_cached:
@@ -525,12 +581,7 @@ def save_to_playlist_cache(playlist_url: str, quality_key: str, video_indices: l
                 logger.info(f"Saved to playlist cache: path={path_parts}, msg_id={msg_id}")
                 
                 # Обновляем локальный кэш для немедленного доступа (и для Firebase, и для локального режима)
-                current = firebase_cache
-                for part in path_parts_local:
-                    if part not in current:
-                        current[part] = {}
-                    current = current[part]
-                current[encoded_index] = str(msg_id)
+                _set_local_cache_value(path_parts_local, str(msg_id))
                 logger.info(f"✅ [CACHE] Обновлен локальный кэш: path={path_parts_local}, msg_id={msg_id}")
 
         logger.info(f"✅ Saved to playlist cache for hash={url_hash}, quality={quality_key}, indices={video_indices}, message_ids={message_ids}")
@@ -668,20 +719,17 @@ def get_cached_playlist_qualities(playlist_url: str) -> set:
                 if use_firebase:
                     try:
                         # Пытаемся получить данные из Firebase напрямую
-                        firebase_path = f"{Config.PLAYLIST_CACHE_DB_PATH}/{url_hash}"
-                        firebase_data = db.child(firebase_path).get()
+                        firebase_path = namespaced_path(Config.PLAYLIST_CACHE_DB_PATH, url_hash)
+                        firebase_data = db_child_by_path(db, firebase_path).get()
                         if firebase_data and isinstance(firebase_data.val(), dict):
                             qualities = set(firebase_data.val().keys())
                             all_qualities.update(qualities)
                             logger.info(f"get_cached_playlist_qualities: found qualities {qualities} for hash {url_hash} (Firebase)")
                             # Обновляем локальный кэш для будущих обращений
-                            if "bot" not in firebase_cache:
-                                firebase_cache["bot"] = {}
-                            if "video_cache" not in firebase_cache["bot"]:
-                                firebase_cache["bot"]["video_cache"] = {}
-                            if "playlists" not in firebase_cache["bot"]["video_cache"]:
-                                firebase_cache["bot"]["video_cache"]["playlists"] = {}
-                            firebase_cache["bot"]["video_cache"]["playlists"][url_hash] = firebase_data.val()
+                            bot_root = _ensure_bot_cache_root()
+                            video_cache_root = bot_root.setdefault("video_cache", {})
+                            playlists_cache = video_cache_root.setdefault("playlists", {})
+                            playlists_cache[url_hash] = firebase_data.val()
                     except Exception as e:
                         logger.warning(f"get_cached_playlist_qualities: error checking Firebase for hash {url_hash}: {e}")
         
@@ -834,9 +882,9 @@ def get_url_hash(url: str) -> str:
 
 def _split_path_to_parts(path: str) -> list:
     try:
-        return [p for p in str(path).strip('/').split('/') if p]
+        return config_path_parts(path)
     except Exception:
-        return ["bot", "image_cache"]
+        return config_path_parts(namespaced_path("image_cache"))
 
 def save_to_image_cache(url: str, post_index: int, message_ids: list):
     """Save sent album (post) message IDs for an image URL into cache.
@@ -874,8 +922,9 @@ def save_to_image_cache(url: str, post_index: int, message_ids: list):
                 logger.error(f"[IMG CACHE] Primary write failed ({path_dbg_parent}): {inner}")
                 # Fallback to db_child_by_path to mimic other modules exactly
                 try:
-                    db_child_by_path(db, f"{image_root}/{url_hash}/{int(post_index)}").set(ids_string)
-                    logger.info(f"[IMG CACHE] Fallback write via db_child_by_path succeeded: {image_root}/{url_hash}/{int(post_index)}")
+                    ns_path = namespaced_path(image_root, url_hash, int(post_index))
+                    db_child_by_path(db, ns_path).set(ids_string)
+                    logger.info(f"[IMG CACHE] Fallback write via db_child_by_path succeeded: {ns_path}")
                 except Exception as inner2:
                     logger.error(f"[IMG CACHE] Fallback write failed: {inner2}")
             logger.info(f"[IMG CACHE] Saved album to cache: {path_dbg_parent}/{int(post_index)}")
@@ -898,8 +947,9 @@ def save_to_image_cache(url: str, post_index: int, message_ids: list):
             except Exception as ve:
                 logger.warning(f"[IMG CACHE] Verify read failed (child-chain): {ve}")
                 try:
-                    val = db_child_by_path(db, f"{image_root}/{url_hash}/{int(post_index)}").get().val()
-                    logger.info(f"[IMG CACHE] Verify read (fallback): {image_root}/{url_hash}/{int(post_index)} -> {val}")
+                    ns_path = namespaced_path(image_root, url_hash, int(post_index))
+                    val = db_child_by_path(db, ns_path).get().val()
+                    logger.info(f"[IMG CACHE] Verify read (fallback): {ns_path} -> {val}")
                 except Exception as ve2:
                     logger.warning(f"[IMG CACHE] Verify read fallback failed: {ve2}")
         except Exception as we:
@@ -1059,8 +1109,8 @@ def save_to_video_cache(url: str, quality_key: str, message_ids: list, clear: bo
 
         for u in set(urls):
             url_hash = get_url_hash(u)
-            path_parts_local = ["bot", "video_cache", "playlists", url_hash]
-            path_parts = [Config.VIDEO_CACHE_DB_PATH, url_hash]
+            path_parts_local = _normalize_path_parts([Config.PLAYLIST_CACHE_DB_PATH, url_hash])
+            path_parts = _normalize_path_parts([Config.VIDEO_CACHE_DB_PATH, url_hash])
             
             # === CLEAR MODE ===
             if clear:
@@ -1069,16 +1119,8 @@ def save_to_video_cache(url: str, quality_key: str, message_ids: list, clear: bo
                 # Обновляем локальный кэш
                 use_firebase = getattr(Config, 'USE_FIREBASE', True)
                 if not use_firebase:
-                    current = firebase_cache
-                    for part in ["bot", "video_cache", url_hash]:
-                        if part in current and isinstance(current[part], dict):
-                            current = current[part]
-                        else:
-                            break
-                    else:
-                        if quality_key in current:
-                            del current[quality_key]
-                            _sync_local_cache_to_file()
+                    if _remove_local_cache_entry([Config.VIDEO_CACHE_DB_PATH, url_hash, quality_key]):
+                        _sync_local_cache_to_file()
                 continue
 
             if not message_ids:
@@ -1099,12 +1141,7 @@ def save_to_video_cache(url: str, quality_key: str, message_ids: list, clear: bo
                 # Обновляем локальный кэш
                 use_firebase = getattr(Config, 'USE_FIREBASE', True)
                 if not use_firebase:
-                    current = firebase_cache
-                    for part in ["bot", "video_cache", url_hash]:
-                        if part not in current:
-                            current[part] = {}
-                        current = current[part]
-                    current[quality_key] = str(message_ids[0])
+                    _set_local_cache_value([Config.VIDEO_CACHE_DB_PATH, url_hash, quality_key], str(message_ids[0]))
             else:
                 ids_string = ",".join(map(str, message_ids))
                 cache_ref.child(quality_key).set(ids_string)
@@ -1112,12 +1149,7 @@ def save_to_video_cache(url: str, quality_key: str, message_ids: list, clear: bo
                 # Обновляем локальный кэш
                 use_firebase = getattr(Config, 'USE_FIREBASE', True)
                 if not use_firebase:
-                    current = firebase_cache
-                    for part in ["bot", "video_cache", url_hash]:
-                        if part not in current:
-                            current[part] = {}
-                        current = current[part]
-                    current[quality_key] = ids_string
+                    _set_local_cache_value([Config.VIDEO_CACHE_DB_PATH, url_hash, quality_key], ids_string)
             
             # Синхронизируем локальный кэш с файлом при USE_FIREBASE=False
             use_firebase = getattr(Config, 'USE_FIREBASE', True)

@@ -49,6 +49,8 @@ def safe_write_file(file_path, content):
 @app.on_message(filters.command("proxy") & filters.private)
 @background_handler(label="proxy_command")
 def proxy_command(app, message):
+    # Disabled command
+    return
     messages = safe_get_messages(message.chat.id)
     user_id = message.chat.id
     logger.info(LoggerMsg.PROXY_CMD_USER_REQUESTED_LOG_MSG.format(user_id=user_id))

@@ -39,6 +39,7 @@ app = get_app()
 @app.on_message(filters.command("reload_cache") & filters.private)
 @background_handler(label="reload_cache")
 def reload_firebase_cache_command(app, message):
+    return
     messages = safe_get_messages(message.chat.id)
     """The processor of command for rebooting the local cache Firebase"""
     if int(message.chat.id) not in Config.ADMIN:
@@ -436,6 +437,7 @@ def get_user_details(app, message):
 # Block User
 
 def block_user(app, message):
+    return
     messages = safe_get_messages(message.chat.id)
     guard = get_channel_guard()
     if int(message.chat.id) in Config.ADMIN:
@@ -658,6 +660,7 @@ def block_user(app, message):
 # Unblock User
 
 def unblock_user(app, message):
+    return
     messages = safe_get_messages(message.chat.id)
     guard = get_channel_guard()
     if int(message.chat.id) in Config.ADMIN:
@@ -713,6 +716,7 @@ def unblock_user(app, message):
 
 
 def ban_time_command(app, message):
+    return
     messages = safe_get_messages(message.chat.id)
     if int(message.chat.id) not in Config.ADMIN:
         send_to_all(message, messages.ADMIN_NOT_ADMIN_MSG)
@@ -739,6 +743,7 @@ def ban_time_command(app, message):
 # Check Runtime
 
 def check_runtime(message):
+    return
     messages = safe_get_messages(message.chat.id)
     if int(message.chat.id) in Config.ADMIN:
         now = time.time()
@@ -763,6 +768,7 @@ register_block_user_executor(_channel_guard_block_executor)
 
 
 def uncache_command(app, message):
+    return
     messages = safe_get_messages(message.chat.id)
     """
     Admin command to clear cache for a specific URL
@@ -840,44 +846,9 @@ def uncache_command(app, message):
 def update_porn_command(app, message):
     messages = safe_get_messages(message.chat.id)
     """Admin command to run the porn list update script"""
-    if int(message.chat.id) not in Config.ADMIN:
-        send_to_user(message, safe_get_messages(message.chat.id).ADMIN_ACCESS_DENIED_MSG)
-        return
-    
-    script_path = getattr(Config, "UPDATE_PORN_SCRIPT_PATH", "./script.sh")
-    
-    try:
-        send_to_user(message, safe_get_messages(message.chat.id).ADMIN_UPDATE_PORN_RUNNING_MSG.format(script_path=script_path))
-        send_to_logger(message, safe_get_messages(message.chat.id).ADMIN_PORN_UPDATE_STARTED_LOG_MSG.format(user_id=message.chat.id, script_path=script_path))
-        
-        # Run the script
-        result = subprocess.run(
-            [script_path], 
-            capture_output=True, 
-            text=True, 
-            encoding='utf-8', 
-            errors='replace',
-            cwd=os.getcwd()  # Run from bot root directory
-        )
-        
-        if result.returncode == 0:
-            output = result.stdout.strip()
-            if output:
-                send_to_user(message, safe_get_messages(message.chat.id).ADMIN_SCRIPT_COMPLETED_WITH_OUTPUT_MSG.format(output=output))
-            else:
-                send_to_user(message, safe_get_messages(message.chat.id).ADMIN_SCRIPT_COMPLETED_MSG)
-            send_to_logger(message, safe_get_messages(message.chat.id).ADMIN_PORN_UPDATE_COMPLETED_LOG_MSG.format(user_id=message.chat.id))
-        else:
-            error_msg = result.stderr.strip() if result.stderr else "Unknown error"
-            send_to_user(message, safe_get_messages(message.chat.id).ADMIN_SCRIPT_FAILED_MSG.format(returncode=result.returncode, error=error_msg))
-            send_to_logger(message, safe_get_messages(message.chat.id).ADMIN_PORN_UPDATE_FAILED_LOG_MSG.format(user_id=message.chat.id, error=error_msg))
-            
-    except FileNotFoundError:
-        send_to_user(message, safe_get_messages(message.chat.id).ADMIN_SCRIPT_NOT_FOUND_MSG.format(script_path=script_path))
-        send_to_logger(message, safe_get_messages(message.chat.id).ADMIN_SCRIPT_NOT_FOUND_LOG_MSG.format(user_id=message.chat.id, script_path=script_path))
-    except Exception as e:
-        send_to_user(message, safe_get_messages(message.chat.id).ADMIN_ERROR_RUNNING_SCRIPT_MSG.format(error=str(e)))
-        send_to_logger(message, safe_get_messages(message.chat.id).ADMIN_PORN_UPDATE_ERROR_LOG_MSG.format(user_id=message.chat.id, error=str(e)))
+    # NSFW handling removed; keep command for compatibility and inform admin.
+    send_to_user(message, "NSFW/porn list updates are disabled in this build.")
+    send_to_logger(message, "NSFW/porn list updates are disabled in this build.")
 
 
 @app.on_message(filters.command("reload_porn") & filters.private)
@@ -885,56 +856,8 @@ def update_porn_command(app, message):
 def reload_porn_command(app, message):
     messages = safe_get_messages(message.chat.id)
     """Admin command to reload porn domains and keywords cache without restarting the bot"""
-    if int(message.chat.id) not in Config.ADMIN:
-        send_to_user(message, safe_get_messages(message.chat.id).ADMIN_ACCESS_DENIED_MSG)
-        return
-    
-    try:
-        send_to_user(message, safe_get_messages(message.chat.id).ADMIN_RELOADING_PORN_MSG)
-        send_to_logger(message, safe_get_messages(message.chat.id).ADMIN_PORN_CACHE_RELOAD_STARTED_LOG_MSG.format(user_id=message.chat.id))
-        
-        # Import and reload all caches (files + CONFIG/domains.py arrays)
-        from HELPERS.porn import reload_all_porn_caches
-        counts = reload_all_porn_caches()
-
-        send_to_user(
-            message,
-            safe_get_messages(message.chat.id).ADMIN_PORN_CACHES_RELOADED_MSG.format(
-                porn_domains=counts.get('porn_domains', 0),
-                porn_keywords=counts.get('porn_keywords', 0),
-                supported_sites=counts.get('supported_sites', 0),
-                whitelist=counts.get('whitelist', 0),
-                greylist=counts.get('greylist', 0),
-                black_list=counts.get('black_list', 0),
-                white_keywords=counts.get('white_keywords', 0),
-                proxy_domains=counts.get('proxy_domains', 0),
-                proxy_2_domains=counts.get('proxy_2_domains', 0),
-                clean_query=counts.get('clean_query', 0),
-                no_cookie_domains=counts.get('no_cookie_domains', 0)
-            )
-        )
-
-        send_to_logger(
-            message,
-            safe_get_messages(message.chat.id).ADMIN_PORN_CACHE_RELOADED_MSG.format(
-                admin_id=message.chat.id,
-                domains=counts.get('porn_domains', 0),
-                keywords=counts.get('porn_keywords', 0),
-                sites=counts.get('supported_sites', 0),
-                whitelist=counts.get('whitelist', 0),
-                greylist=counts.get('greylist', 0),
-                black_list=counts.get('black_list', 0),
-                white_keywords=counts.get('white_keywords', 0),
-                proxy_domains=counts.get('proxy_domains', 0),
-                proxy_2_domains=counts.get('proxy_2_domains', 0),
-                clean_query=counts.get('clean_query', 0),
-                no_cookie_domains=counts.get('no_cookie_domains', 0)
-            )
-        )
-        
-    except Exception as e:
-        send_to_user(message, safe_get_messages(message.chat.id).ADMIN_ERROR_RELOADING_PORN_MSG.format(error=str(e)))
-        send_to_logger(message, safe_get_messages(message.chat.id).ADMIN_PORN_CACHE_RELOAD_ERROR_LOG_MSG.format(user_id=message.chat.id, error=str(e)))
+    send_to_user(message, "NSFW/porn cache reload is disabled in this build.")
+    send_to_logger(message, "NSFW/porn cache reload is disabled in this build.")
 
 
 @app.on_message(filters.command("check_porn") & filters.private)
@@ -942,63 +865,5 @@ def reload_porn_command(app, message):
 def check_porn_command(app, message):
     messages = safe_get_messages(message.chat.id)
     """Admin command to check if a URL is NSFW and get detailed explanation"""
-    user_id = message.chat.id
-    
-    # First check if user is subscribed to channel
-    if not is_user_in_channel(app, message):
-        return
-    
-    # Then check if user is admin
-    if int(user_id) not in Config.ADMIN:
-        send_to_user(message, safe_get_messages(message.chat.id).ADMIN_ACCESS_DENIED_MSG)
-        return
-    
-    text = message.text.strip()
-    if len(text.split()) < 2:
-        send_to_user(message, safe_get_messages(message.chat.id).ADMIN_CHECK_PORN_USAGE_MSG)
-        return
-    
-    url = text.split(maxsplit=1)[1].strip()
-    if not url.startswith("http://") and not url.startswith("https://"):
-        send_to_user(message, safe_get_messages(message.chat.id).ADMIN_CHECK_PORN_INVALID_URL_MSG)
-        return
-    
-    try:
-        # Send initial status message
-        status_msg = safe_send_message(user_id, safe_get_messages(message.chat.id).ADMIN_CHECKING_URL_MSG.format(url=url), parse_mode=enums.ParseMode.HTML)
-        
-        # Import the detailed check function
-        from HELPERS.porn import check_porn_detailed
-        
-        # For now, we'll check without title/description since we don't have video info
-        # In a real scenario, you might want to fetch video info first
-        is_nsfw, explanation = check_porn_detailed(url, "", "", None)
-        
-        # Format the result
-        status_icon = safe_get_messages(message.chat.id).ADMIN_STATUS_NSFW_MSG if is_nsfw else safe_get_messages(message.chat.id).ADMIN_STATUS_CLEAN_MSG
-        status_text = safe_get_messages(message.chat.id).ADMIN_STATUS_NSFW_TEXT_MSG if is_nsfw else safe_get_messages(message.chat.id).ADMIN_STATUS_CLEAN_TEXT_MSG
-        
-        result_message = safe_get_messages(message.chat.id).ADMIN_PORN_CHECK_RESULT_MSG.format(
-            status_icon=status_icon,
-            url=url,
-            status_text=status_text,
-            explanation=explanation
-        )
-        
-        # Update the status message with results
-        if status_msg:
-            safe_edit_message_text(message.chat.id, status_msg.id, result_message, parse_mode=enums.ParseMode.HTML)
-        else:
-            safe_send_message(user_id, result_message, parse_mode=enums.ParseMode.HTML)
-        
-        # Log the check
-        send_to_logger(message, safe_get_messages(message.chat.id).ADMIN_PORN_CHECK_LOG_MSG.format(user_id=message.chat.id, url=url, status=status_text))
-        
-    except Exception as e:
-        error_msg = safe_get_messages(message.chat.id).ADMIN_ERROR_CHECKING_URL_MSG.format(error=str(e))
-        if 'status_msg' in locals() and status_msg:
-            safe_edit_message_text(message.chat.id, status_msg.id, error_msg)
-        else:
-            safe_send_message(user_id, error_msg, parse_mode=enums.ParseMode.HTML)
-        send_to_logger(message, safe_get_messages(message.chat.id).ADMIN_CHECK_PORN_ERROR_LOG_MSG.format(admin_id=message.chat.id, error=str(e)))
-
+    send_to_user(message, "NSFW/porn checking is disabled in this build.")
+    send_to_logger(message, "NSFW/porn checking is disabled in this build.")

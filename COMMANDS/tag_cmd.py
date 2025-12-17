@@ -16,6 +16,8 @@ app = get_app()
 # @reply_with_keyboard
 @background_handler(label="tags_command")
 def tags_command(app, message):
+    # Disabled command
+    return
     messages = safe_get_messages(message.chat.id)
     user_id = message.chat.id
     # Subscription check for non-admins

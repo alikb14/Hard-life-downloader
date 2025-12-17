@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from CONFIG.messages import Messages, safe_get_messages
 """
-Interactive backup restore tool for tg-ytdlp-bot.
+Interactive backup restore tool for the bot project.
 
 - Scans the `_backup/` directory for backup files created by updater
   (filenames end with `.backup_YYYYMMDD_HHMMSS`).

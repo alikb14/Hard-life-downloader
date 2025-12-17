@@ -8,7 +8,7 @@ class Messages(object):
     #######################################################
     # Messages and errors
     #######################################################
-    CREDITS_MSG = "<blockquote><i>Managed by</i> @iilililiiillliiliililliilliliiil\n🇮🇹 @tgytdlp_it_bot\n🇦🇪 @tgytdlp_uae_bot\n🇬🇧 @tgytdlp_uk_bot\n🇫🇷 @tgytdlp_fr_bot</blockquote>\n<b>🌍 Change language: /lang</b>"
+    CREDITS_MSG = ""
     TO_USE_MSG = "<i>To use this bot you need to subscribe to @tg_ytdlp Telegram channel.</i>\nAfter you join the channel, <b>resend your video link again and bot will download it for you</b> ❤️\n\n<blockquote>P.S. Downloading 🔞NSFW content and files from ☁️Cloud Storage is paid! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ Do not leave the channel - you will be banned from using the bot ⛔️</blockquote>"
 
     ERROR1 = "Did not found a url link. Please enter a url with <b>https://</b> or <b>http://</b>"
@@ -169,11 +169,6 @@ Use <code>/img URL</code> to download images/photos/albums from many platforms.
         ".youtube.com  TRUE  /  FALSE  222  ST-xxxxx  session_logininfo=BBB\n"
         ".youtube.com  TRUE  /  FALSE  33333  ST-xxxxx  session_logininfo=CCC\n"
         "</pre>\n"
-        "<blockquote>"
-        "<b><u>Instructions:</u></b>\n"
-        "https://t.me/tg_ytdlp/203 \n"
-        "https://t.me/tg_ytdlp/214 "
-        "</blockquote>"
     )
     
     # Search command message (English)
@@ -1408,9 +1403,9 @@ Use:
     AUDIO_PROGRESS_MSG = "<b>Audio:</b> {current} / {total}"
     
     # Error messages
-    ERROR_CHECK_SUPPORTED_SITES_MSG = "Check <a href='https://github.com/chelaxian/tg-ytdlp-bot/wiki/YT_DLP#supported-sites'>here</a> if your site supported"
+    ERROR_CHECK_SUPPORTED_SITES_MSG = "This site may not be supported."
     ERROR_COOKIE_NEEDED_MSG = "You may need <code>cookie</code> for downloading this video. First, clean your workspace via <b>/clean</b> command"
-    ERROR_COOKIE_INSTRUCTIONS_MSG = "For Youtube - get <code>cookie</code> via <b>/cookie</b> command. For any other supported site - send your own cookie (<a href='https://t.me/tg_ytdlp/203'>guide1</a>) (<a href='https://t.me/tg_ytdlp/214'>guide2</a>) and after that send your video link again."
+    ERROR_COOKIE_INSTRUCTIONS_MSG = "For Youtube - get <code>cookie</code> via <b>/cookie</b> command. For any other supported site - send your own cookie and after that send your video link again."
     CHOOSE_SUBTITLE_LANGUAGE_MSG = "Choose subtitle language"
     NO_ALTERNATIVE_AUDIO_LANGUAGES_MSG = "No alternative audio languages"
     CHOOSE_AUDIO_LANGUAGE_MSG = "Choose audio language"
@@ -1627,7 +1622,7 @@ Use:
     ARGS_ERROR_SENDING_TIMEOUT_MSG = "Error sending timeout message: {error}"
     
     # Language selection messages
-    LANG_SELECTION_MSG = "🌍 <b>Choose language</b>\n\n🇺🇸 English\n🇷🇺 Русский\n🇸🇦 العربية\n🇮🇳 हिन्दी"
+    LANG_SELECTION_MSG = "🌍 <b>Choose language</b>\n\n🇺🇸 English\n🇸🇦 العربية"
     LANG_CHANGED_MSG = "✅ Language changed to {lang_name}"
     LANG_ERROR_MSG = "❌ Error changing language"
     LANG_CLOSED_MSG = "Language selection closed"
@@ -1927,7 +1922,7 @@ Use:
     HELPER_ADMIN_RIGHTS_REQUIRED_MSG = "❗️ Для работы в группе боту нужны права администратора. Пожалуйста, сделайте бота админом этой группы."
     
     # URL extractor messages
-    URL_EXTRACTOR_WELCOME_MSG = "Hello {first_name},\n \n<i>This bot🤖 can download any videos into telegram directly.😊 For more information press <b>/help</b></i> 👈\n\n<blockquote>P.S. Downloading 🔞NSFW content and files from ☁️Cloud Storage is paid! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ Do not leave the channel - you will be banned from using the bot ⛔️</blockquote>\n \n {credits}"
+    URL_EXTRACTOR_WELCOME_MSG = "Hello {first_name},\n \nThis bot🤖 can download any videos\n\n🌍 Change language: /lang"
     URL_EXTRACTOR_NO_FILES_TO_REMOVE_MSG = "🗑 No files to remove."
     URL_EXTRACTOR_ALL_FILES_REMOVED_MSG = "🗑 All files removed successfully!\n\nRemoved files:\n{files_list}"
     

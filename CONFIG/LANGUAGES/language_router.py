@@ -18,9 +18,7 @@ class LanguageRouter:
         self.languages_dir = os.path.dirname(os.path.abspath(__file__))
         self.available_languages = {
             'en': 'messages_EN.py',
-            'ru': 'messages_RU.py', 
             'ar': 'messages_AR.py',
-            'in': 'messages_IN.py'
         }
         self.default_language = 'en'
         self._cached_messages = {}
@@ -125,9 +123,7 @@ class LanguageRouter:
         """
         return {
             'en': '🇺🇸 English',
-            'ru': '🇷🇺 Русский', 
             'ar': '🇸🇦 العربية',
-            'in': '🇮🇳 हिन्दी'
         }
     
     def _load_messages_with_ast(self, messages_path: str) -> Dict[str, Any]:

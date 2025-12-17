@@ -67,6 +67,8 @@ def TimeFormatter(milliseconds: int) -> str:
 # Check the USAGE of the BOT
 
 def is_user_in_channel(app, message):
+    # Subscription check disabled – always allow access
+    return True
     messages = safe_get_messages(message.chat.id)
     # Bypass subscription checks for explicitly allowed groups
     try:
@@ -88,7 +90,11 @@ def is_user_in_channel(app, message):
 
     except Exception as e:
         logger.error(LoggerMsg.LIMITTER_CHANNEL_CHECK_ERROR_LOG_MSG.format(user_id=message.chat.id, error=e))
-        text = f"{safe_get_messages(message.chat.id).TO_USE_MSG}\n \n{safe_get_messages(message.chat.id).CREDITS_MSG}"
+        credits = safe_get_messages(message.chat.id).CREDITS_MSG
+        text = (
+            f"{safe_get_messages(message.chat.id).TO_USE_MSG}\n \n{credits}"
+            if credits else safe_get_messages(message.chat.id).TO_USE_MSG
+        )
         
         # Create keyboard with channel join button and language selection
         channel_button = InlineKeyboardButton(
@@ -109,7 +115,11 @@ def is_user_in_channel(app, message):
         return False
     
     # If user is not a member, send subscription message
-    text = f"{safe_get_messages(message.chat.id).TO_USE_MSG}\n \n{safe_get_messages(message.chat.id).CREDITS_MSG}"
+    credits = safe_get_messages(message.chat.id).CREDITS_MSG
+    text = (
+        f"{safe_get_messages(message.chat.id).TO_USE_MSG}\n \n{credits}"
+        if credits else safe_get_messages(message.chat.id).TO_USE_MSG
+    )
     
     # Create keyboard with channel join button and language selection
     channel_button = InlineKeyboardButton(

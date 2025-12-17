@@ -29,18 +29,12 @@ def command2(app, message):
     from pyrogram import enums
     user_id = message.chat.id
     messages = safe_get_messages(user_id)
-    keyboard = InlineKeyboardMarkup([
-        [
-            InlineKeyboardButton(safe_get_messages(user_id).SETTINGS_DEV_GITHUB_BUTTON_MSG, url="https://github.com/upekshaip/tg-ytdlp-bot"),
-            InlineKeyboardButton(safe_get_messages(user_id).SETTINGS_CONTR_GITHUB_BUTTON_MSG, url="https://github.com/chelaxian/tg-ytdlp-bot")
-        ],
-        [InlineKeyboardButton(safe_get_messages(user_id).URL_EXTRACTOR_HELP_CLOSE_BUTTON_MSG, callback_data="help_msg|close")]
-    ])
-
-    result = safe_send_message(message.chat.id, (safe_get_messages(user_id).HELP_MSG),
-
-                      parse_mode=enums.ParseMode.HTML,
-                      reply_markup=keyboard)
+    result = safe_send_message(
+        message.chat.id,
+        (safe_get_messages(user_id).HELP_MSG),
+        parse_mode=enums.ParseMode.HTML,
+        reply_markup=None
+    )
     send_to_logger(message, safe_get_messages(user_id).SETTINGS_HELP_SENT_MSG)
     return result
 
@@ -60,17 +54,6 @@ def settings_command(app, message):
     keyboard = InlineKeyboardMarkup([
         [
             InlineKeyboardButton(safe_get_messages(user_id).SETTINGS_LANGUAGE_BUTTON_MSG, callback_data="settings__menu__language"),
-        ],
-        [
-            InlineKeyboardButton(safe_get_messages(user_id).SETTINGS_CLEAN_BUTTON_MSG, callback_data="settings__menu__clean"),
-            InlineKeyboardButton(safe_get_messages(user_id).SETTINGS_COOKIES_BUTTON_MSG, callback_data="settings__menu__cookies"),
-        ],
-        [
-            InlineKeyboardButton(safe_get_messages(user_id).SETTINGS_MEDIA_BUTTON_MSG, callback_data="settings__menu__media"),
-            InlineKeyboardButton(safe_get_messages(user_id).SETTINGS_INFO_BUTTON_MSG, callback_data="settings__menu__logs"),
-        ],
-        [
-            InlineKeyboardButton(safe_get_messages(user_id).SETTINGS_MORE_BUTTON_MSG, callback_data="settings__menu__more"),
             InlineKeyboardButton(safe_get_messages(user_id).URL_EXTRACTOR_HELP_CLOSE_BUTTON_MSG, callback_data="settings__menu__close"),
         ]
     ])
@@ -90,6 +73,13 @@ def settings_menu_callback(app, callback_query: CallbackQuery):
     user_id = callback_query.from_user.id
     messages = safe_get_messages(user_id)
     data = callback_query.data.split("__")[-1]
+    # Only language/close actions remain
+    if data not in ("close", "language"):
+        try:
+            callback_query.answer(safe_get_messages(user_id).SETTINGS_MENU_CLOSED_MSG)
+        except Exception:
+            pass
+        return
     if data == "close":
         try:
             callback_query.message.delete()
@@ -211,7 +201,6 @@ safe_get_messages(user_id).SETTINGS_MEDIA_TITLE_MSG,
     if data == "logs":
         keyboard = InlineKeyboardMarkup([
             [InlineKeyboardButton(safe_get_messages(user_id).SETTINGS_TAGS_CMD_BUTTON_MSG, callback_data="settings__cmd__tags")],
-            [InlineKeyboardButton(safe_get_messages(user_id).SETTINGS_HELP_CMD_BUTTON_MSG, callback_data="settings__cmd__help")],
             [InlineKeyboardButton(safe_get_messages(user_id).SETTINGS_USAGE_CMD_BUTTON_MSG, callback_data="settings__cmd__usage")],
             [InlineKeyboardButton(safe_get_messages(user_id).SETTINGS_PLAYLIST_HELP_CMD_BUTTON_MSG, callback_data="settings__cmd__playlist")],
             [InlineKeyboardButton(safe_get_messages(user_id).SETTINGS_ADD_BOT_CMD_BUTTON_MSG, callback_data="settings__cmd__add_bot_to_group")],
@@ -495,233 +484,21 @@ def settings_cmd_callback(app, callback_query: CallbackQuery):
             pass
         return
     if data == "help":
+        # Help command disabled - just acknowledge and exit
         try:
-            res = command2(app, fake_message("/help", user_id))
-
-        except FloodWait as e:
-            user_dir = os.path.join("users", str(user_id))
-            os.makedirs(user_dir, exist_ok=True)
-            with open(os.path.join(user_dir, "flood_wait.txt"), 'w') as f:
-                f.write(str(e.value))
-
-            try:
-                callback_query.answer(safe_get_messages(user_id).SETTINGS_FLOOD_LIMIT_MSG, show_alert=False)
-            except Exception:
-                pass
-            return
-        # If safe_send_message returned None due to FloodWait, notify via callback
-        if res is None:
-            try:
-                callback_query.answer(safe_get_messages(user_id).SETTINGS_FLOOD_LIMIT_MSG, show_alert=False)
-            except Exception:
-                pass
-        else:
-            try:
-                callback_query.answer(safe_get_messages(user_id).SETTINGS_COMMAND_EXECUTED_MSG)
-            except Exception:
-                pass
-
-        return
-    if data == "usage":
-        try:
-            url_distractor(app, fake_message("/usage", user_id))
-        except FloodWait as e:
-            user_dir = os.path.join("users", str(user_id))
-            os.makedirs(user_dir, exist_ok=True)
-            with open(os.path.join(user_dir, "flood_wait.txt"), 'w') as f:
-                f.write(str(e.value))
-
-            try:
-                callback_query.answer(safe_get_messages(user_id).SETTINGS_FLOOD_LIMIT_MSG, show_alert=False)
-            except Exception:
-                pass
-            return
-        try:
-            callback_query.answer(safe_get_messages(user_id).SETTINGS_COMMAND_EXECUTED_MSG)
-        except Exception:
-            pass
-
-        return
-    if data == "playlist":
-        try:
-            playlist_command(app, fake_message("/playlist", user_id))
-        except FloodWait as e:
-            user_dir = os.path.join("users", str(user_id))
-            os.makedirs(user_dir, exist_ok=True)
-            with open(os.path.join(user_dir, "flood_wait.txt"), 'w') as f:
-                f.write(str(e.value))
-
-            try:
-                callback_query.answer(safe_get_messages(user_id).SETTINGS_FLOOD_LIMIT_MSG, show_alert=False)
-            except Exception:
-                pass
-            return
-        try:
-            callback_query.answer(safe_get_messages(user_id).SETTINGS_COMMAND_EXECUTED_MSG)
-        except Exception:
-            pass
-
-        return
-    if data == "img":
-        keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton(safe_get_messages(user_id).COMMAND_IMAGE_HELP_CLOSE_BUTTON_MSG, callback_data="img_hint|close")]
-        ])
-        safe_send_message(
-            user_id,
-            safe_get_messages(user_id).IMG_HELP_MSG,
-            reply_parameters=ReplyParameters(message_id=callback_query.message.id),
-            reply_markup=keyboard,
-            _callback_query=callback_query,
-            _fallback_notice=safe_get_messages(user_id).FLOOD_LIMIT_TRY_LATER_MSG,
-            parse_mode=enums.ParseMode.HTML,
-        )
-        try:
-            callback_query.answer(safe_get_messages(user_id).SETTINGS_HINT_SENT_MSG)
+            callback_query.answer(safe_get_messages(user_id).SETTINGS_MENU_CLOSED_MSG)
         except Exception:
             pass
         return
-    if data == "link":
-        keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton(safe_get_messages(user_id).URL_EXTRACTOR_HELP_CLOSE_BUTTON_MSG, callback_data="link_hint|close")]
-        ])
-        safe_send_message(user_id,
-                          safe_get_messages(user_id).LINK_HINT_MSG,
-                          reply_parameters=ReplyParameters(message_id=callback_query.message.id),
-                          reply_markup=keyboard,
-                          _callback_query=callback_query,
-                          _fallback_notice=safe_get_messages(user_id).FLOOD_LIMIT_TRY_LATER_MSG)
+    if data in ("usage", "playlist"):
         try:
-            callback_query.answer(safe_get_messages(user_id).SETTINGS_HINT_SENT_MSG)
+            callback_query.answer(safe_get_messages(user_id).SETTINGS_MENU_CLOSED_MSG)
         except Exception:
             pass
         return
-    if data == "proxy":
+    if data in ("img", "link", "proxy", "keyboard", "search_menu", "add_bot_to_group", "args", "nsfw"):
         try:
-            url_distractor(app, fake_message("/proxy", user_id))
-        except FloodWait as e:
-            user_dir = os.path.join("users", str(user_id))
-            os.makedirs(user_dir, exist_ok=True)
-            with open(os.path.join(user_dir, "flood_wait.txt"), 'w') as f:
-                f.write(str(e.value))
-            try:
-                callback_query.answer(safe_get_messages(user_id).SETTINGS_FLOOD_LIMIT_MSG, show_alert=False)
-            except Exception:
-                pass
-            return
-        try:
-            callback_query.answer(safe_get_messages(user_id).SETTINGS_COMMAND_EXECUTED_MSG)
-        except Exception:
-            pass
-        return
-    if data == "keyboard":
-        try:
-            url_distractor(app, fake_message("/keyboard", user_id))
-        except FloodWait as e:
-            user_dir = os.path.join("users", str(user_id))
-            os.makedirs(user_dir, exist_ok=True)
-            with open(os.path.join(user_dir, "flood_wait.txt"), 'w') as f:
-                f.write(str(e.value))
-            try:
-                callback_query.answer(safe_get_messages(user_id).SETTINGS_FLOOD_LIMIT_MSG, show_alert=False)
-            except Exception:
-                pass
-            return
-        try:
-            callback_query.answer(safe_get_messages(user_id).SETTINGS_COMMAND_EXECUTED_MSG)
-        except Exception:
-            pass
-        return
-    if data == "search_menu":
-        # Get bot name from config
-        bot_name = Config.BOT_NAME
-        
-        # Create inline keyboard with mobile button and close button (same as search.py)
-        keyboard = InlineKeyboardMarkup([
-            [
-                InlineKeyboardButton(
-                    safe_get_messages(user_id).SETTINGS_MOBILE_ACTIVATE_SEARCH_MSG,
-                    url=f"tg://msg?text=%40vid%20%E2%80%8B&to=%40{bot_name}"
-                )
-            ],
-            [
-                InlineKeyboardButton(
-                    safe_get_messages(user_id).URL_EXTRACTOR_HELP_CLOSE_BUTTON_MSG,
-                    callback_data="search_msg|close"
-                )
-            ]
-        ])
-        
-        # Send message with search instructions (same as search.py)
-        text = safe_get_messages(user_id).SEARCH_MSG
-        
-        safe_send_message(
-            user_id,
-            text,
-            parse_mode=enums.ParseMode.HTML,
-            reply_markup=keyboard,
-            reply_parameters=ReplyParameters(message_id=callback_query.message.id),
-            _callback_query=callback_query,
-            _fallback_notice=safe_get_messages(user_id).FLOOD_LIMIT_TRY_LATER_MSG
-        )
-        
-        try:
-            callback_query.answer(safe_get_messages(user_id).SETTINGS_SEARCH_HELPER_OPENED_MSG)
-        except Exception:
-            pass
-        return
-    if data == "add_bot_to_group":
-        try:
-            url_distractor(app, fake_message("/add_bot_to_group", user_id))
-        except FloodWait as e:
-            user_dir = os.path.join("users", str(user_id))
-            os.makedirs(user_dir, exist_ok=True)
-            with open(os.path.join(user_dir, "flood_wait.txt"), 'w') as f:
-                f.write(str(e.value))
-            try:
-                callback_query.answer(safe_get_messages(user_id).SETTINGS_FLOOD_LIMIT_MSG, show_alert=False)
-            except Exception:
-                pass
-            return
-        try:
-            callback_query.answer(safe_get_messages(user_id).SETTINGS_COMMAND_EXECUTED_MSG)
-        except Exception:
-            pass
-        return
-    if data == "args":
-        try:
-            from COMMANDS.args_cmd import args_command
-            args_command(app, fake_message("/args", user_id))
-        except FloodWait as e:
-            user_dir = os.path.join("users", str(user_id))
-            os.makedirs(user_dir, exist_ok=True)
-            with open(os.path.join(user_dir, "flood_wait.txt"), 'w') as f:
-                f.write(str(e.value))
-            try:
-                callback_query.answer(safe_get_messages(user_id).SETTINGS_FLOOD_LIMIT_MSG, show_alert=False)
-            except Exception:
-                pass
-            return
-        try:
-            callback_query.answer(safe_get_messages(user_id).SETTINGS_COMMAND_EXECUTED_MSG)
-        except Exception:
-            pass
-        return
-    if data == "nsfw":
-        try:
-            from COMMANDS.nsfw_cmd import nsfw_command
-            nsfw_command(app, fake_message("/nsfw", user_id))
-        except FloodWait as e:
-            user_dir = os.path.join("users", str(user_id))
-            os.makedirs(user_dir, exist_ok=True)
-            with open(os.path.join(user_dir, "flood_wait.txt"), 'w') as f:
-                f.write(str(e.value))
-            try:
-                callback_query.answer(safe_get_messages(user_id).SETTINGS_FLOOD_LIMIT_MSG, show_alert=False)
-            except Exception:
-                pass
-            return
-        try:
-            callback_query.answer(safe_get_messages(user_id).SETTINGS_COMMAND_EXECUTED_MSG)
+            callback_query.answer(safe_get_messages(user_id).SETTINGS_MENU_CLOSED_MSG)
         except Exception:
             pass
         return

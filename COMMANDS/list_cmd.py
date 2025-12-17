@@ -89,6 +89,8 @@ def run_ytdlp_list(url: str, user_id: int) -> tuple[bool, str]:
 @app.on_message(filters.command("list") & filters.private)
 @background_handler(label="list_command")
 def list_command(app, message):
+    # Disabled command
+    return
     messages = safe_get_messages(message.chat.id)
     """Handle /list command"""
     user_id = message.chat.id

@@ -8,7 +8,7 @@ class Messages(object):
     #######################################################
     # Messages and errors
     #######################################################
-    CREDITS_MSG = "<blockquote><i>Администрирует</i> @iilililiiillliiliililliilliliiil\n🇮🇹 @tgytdlp_it_bot\n🇦🇪 @tgytdlp_uae_bot\n🇬🇧 @tgytdlp_uk_bot\n🇫🇷 @tgytdlp_fr_bot</blockquote>\n<b>🌍 Сменить язык: /lang</b>"
+    CREDITS_MSG = ""
     TO_USE_MSG = "<i>Для использования этого бота вам нужно подписаться на Telegram канал @tg_ytdlp.</i>\nПосле того как вы присоединитесь к каналу, <b>отправьте ссылку на видео снова и бот скачает её для вас</b> ❤️\n\n<blockquote>P.S. Скачивание 🔞NSFW контента и файлов из ☁️Cloud Storage является платным! 1⭐️ = $0.02</blockquote>\n<blockquote>P.P.S. ‼️ Не отписывайте от канала - иначе получите бан на использование бота ⛔️</blockquote>"
 
     ERROR1 = "Ссылка не найдена. Пожалуйста, введите URL с <b>https://</b> или <b>http://</b>"
@@ -169,11 +169,6 @@ class Messages(object):
         ".youtube.com  TRUE  /  FALSE  222  ST-xxxxx  session_logininfo=BBB\n"
         ".youtube.com  TRUE  /  FALSE  33333  ST-xxxxx  session_logininfo=CCC\n"
         "</pre>\n"
-        "<blockquote>"
-        "<b><u>Инструкции:</u></b>\n"
-        "https://t.me/tg_ytdlp/203 \n"
-        "https://t.me/tg_ytdlp/214 "
-        "</blockquote>"
     )
     
     # Search command message (Russian)
@@ -1408,9 +1403,9 @@ class Messages(object):
     AUDIO_PROGRESS_MSG = "<b>Аудио:</b> {current} / {total}"
     
     # Error messages
-    ERROR_CHECK_SUPPORTED_SITES_MSG = "Проверьте <a href='https://github.com/chelaxian/tg-ytdlp-bot/wiki/YT_DLP#supported-sites'>здесь</a>, поддерживается ли ваш сайт"
+    ERROR_CHECK_SUPPORTED_SITES_MSG = "Возможна неподдерживаемая ссылка."
     ERROR_COOKIE_NEEDED_MSG = "Возможно, вам нужен <code>cookie</code> для скачивания этого видео. Сначала очистите рабочее пространство командой <b>/clean</b>"
-    ERROR_COOKIE_INSTRUCTIONS_MSG = "Для YouTube - получите <code>cookie</code> командой <b>/cookie</b>. Для любого другого поддерживаемого сайта - отправьте свой собственный cookie (<a href='https://t.me/tg_ytdlp/203'>руководство1</a>) (<a href='https://t.me/tg_ytdlp/214'>руководство2</a>) и после этого отправьте ссылку на видео снова."
+    ERROR_COOKIE_INSTRUCTIONS_MSG = "Для YouTube - получите <code>cookie</code> командой <b>/cookie</b>. Для любого другого поддерживаемого сайта - отправьте свой собственный cookie и после этого отправьте ссылку на видео снова."
     CHOOSE_SUBTITLE_LANGUAGE_MSG = "Выберите язык субтитров"
     NO_ALTERNATIVE_AUDIO_LANGUAGES_MSG = "Нет альтернативных языков аудио"
     CHOOSE_AUDIO_LANGUAGE_MSG = "Выберите язык аудио"
@@ -1627,7 +1622,7 @@ class Messages(object):
     ARGS_ERROR_SENDING_TIMEOUT_MSG = "Ошибка отправки сообщения о таймауте: {error}"
     
     # Language selection messages
-    LANG_SELECTION_MSG = "🌍 <b>Выберите язык</b>\n\n🇺🇸 English\n🇷🇺 Русский\n🇸🇦 العربية\n🇮🇳 हिन्दी"
+    LANG_SELECTION_MSG = "🌍 <b>Выберите язык</b>\n\n🇺🇸 English\n🇸🇦 العربية"
     LANG_CHANGED_MSG = "✅ Язык изменен на {lang_name}"
     LANG_ERROR_MSG = "❌ Ошибка изменения языка"
     LANG_CLOSED_MSG = "Выбор языка закрыт"

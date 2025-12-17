@@ -65,7 +65,7 @@ def _handle_quality_key_error(e: Exception, split_msg_ids: list, is_playlist: bo
     logger.info(f"Final check after quality_key error: successful_uploads={successful_uploads}, len(indices_to_download)={len(indices_to_download)}, split_msg_ids={split_msg_ids}, is_playlist={is_playlist}")
     if (successful_uploads == len(indices_to_download)) or (split_msg_ids and not is_playlist):
         logger.info(f"Upload complete condition met after quality_key error, replacing status message")
-        success_msg = f"<b>{safe_get_messages(user_id).DOWN_UP_UPLOAD_COMPLETE_MSG}</b> - {video_count} {safe_get_messages(user_id).DOWN_UP_FILES_UPLOADED_MSG}.\n{safe_get_messages(user_id).CREDITS_MSG}"
+        success_msg = f"<b>{safe_get_messages(user_id).DOWN_UP_UPLOAD_COMPLETE_MSG}</b> - {video_count} {safe_get_messages(user_id).DOWN_UP_FILES_UPLOADED_MSG}."
         safe_edit_message_text(user_id, proc_msg_id, success_msg)
         send_to_logger(message, success_msg)
         try:
@@ -2515,7 +2515,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             log_channel_paid = get_log_channel("video", paid=True)
                             try:
                                 # Forward the paid video to LOGS_PAID_ID
-                                safe_forward_messages(log_channel_paid, user_id, [video_msg.id])
+                                if not getattr(Config, "LOCAL_SAVE_ENABLED", False):
+                                    safe_forward_messages(log_channel_paid, user_id, [video_msg.id])
                                 logger.info(f"down_and_up: NSFW content paid copy sent to PAID channel")
                             except Exception as e:
                                 logger.error(f"down_and_up: failed to send paid copy to PAID channel: {e}")
@@ -2562,7 +2563,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                 log_channel = get_log_channel("video", nsfw=True)
                                 if log_channel and log_channel != 0:
                                     try:
-                                        forwarded_msgs = safe_forward_messages(log_channel, user_id, [video_msg.id])
+                                        if not getattr(Config, "LOCAL_SAVE_ENABLED", False):
+                                            forwarded_msgs = safe_forward_messages(log_channel, user_id, [video_msg.id])
                                         logger.info(f"down_and_up: NSFW content sent to NSFW channel")
                                     except Exception as e:
                                         logger.error(f"down_and_up: failed to forward to NSFW channel: {e}")
@@ -2575,7 +2577,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                 log_channel = get_log_channel("video", nsfw=True)
                                 if log_channel and log_channel != 0:
                                     try:
-                                        forwarded_msgs = safe_forward_messages(log_channel, user_id, [video_msg.id])
+                                        if not getattr(Config, "LOCAL_SAVE_ENABLED", False):
+                                            forwarded_msgs = safe_forward_messages(log_channel, user_id, [video_msg.id])
                                         logger.info(f"down_and_up: NSFW content sent to NSFW channel")
                                     except Exception as e:
                                         logger.error(f"down_and_up: failed to forward to NSFW channel: {e}")
@@ -2588,7 +2591,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                 log_channel = get_log_channel("video", nsfw=True)
                                 if log_channel and log_channel != 0:
                                     try:
-                                        forwarded_msgs = safe_forward_messages(log_channel, user_id, [video_msg.id])
+                                        if not getattr(Config, "LOCAL_SAVE_ENABLED", False):
+                                            forwarded_msgs = safe_forward_messages(log_channel, user_id, [video_msg.id])
                                         logger.info(f"down_and_up: NSFW content sent to NSFW channel")
                                     except Exception as e:
                                         logger.error(f"down_and_up: failed to forward to NSFW channel: {e}")
@@ -2611,15 +2615,18 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             if caption_lst and len(caption_lst) > 1:
                                 # This is a split video - always forward each part (even if it's in a playlist)
                                 log_channel = get_log_channel("video")
-                                forwarded_msgs = safe_forward_messages(log_channel, user_id, [video_msg.id])
+                                if not getattr(Config, "LOCAL_SAVE_ENABLED", False):
+                                    forwarded_msgs = safe_forward_messages(log_channel, user_id, [video_msg.id])
                             elif is_playlist:
                                 # For playlists (non-split videos), always forward each video to log channel
                                 log_channel = get_log_channel("video")
-                                forwarded_msgs = safe_forward_messages(log_channel, user_id, [video_msg.id])
+                                if not getattr(Config, "LOCAL_SAVE_ENABLED", False):
+                                    forwarded_msgs = safe_forward_messages(log_channel, user_id, [video_msg.id])
                             elif not already_forwarded_to_log:
                                 already_forwarded_to_log = True  # Set flag BEFORE forward to prevent duplicates
                                 log_channel = get_log_channel("video")
-                                forwarded_msgs = safe_forward_messages(log_channel, user_id, [video_msg.id])
+                                if not getattr(Config, "LOCAL_SAVE_ENABLED", False):
+                                    forwarded_msgs = safe_forward_messages(log_channel, user_id, [video_msg.id])
                             else:
                                 logger.info("down_and_up: skipping forward to LOGS_VIDEO_ID - already forwarded to log")
                                 forwarded_msgs = None
@@ -2689,7 +2696,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         if split_msg_ids and not is_playlist:
                             logger.info(f"PREVENTIVE FIX: Processing split video completion after quality_key error in loop: {split_msg_ids}")
                             actual_video_count = len(split_msg_ids)
-                            success_msg = f"<b>{safe_get_messages(user_id).DOWN_UP_UPLOAD_COMPLETE_MSG}</b> - {actual_video_count} {safe_get_messages(user_id).DOWN_UP_FILES_UPLOADED_MSG}.\n{safe_get_messages(user_id).CREDITS_MSG}"
+                            success_msg = f"<b>{safe_get_messages(user_id).DOWN_UP_UPLOAD_COMPLETE_MSG}</b> - {actual_video_count} {safe_get_messages(user_id).DOWN_UP_FILES_UPLOADED_MSG}."
                             logger.info(f"PREVENTIVE FIX: sending final success message for split video: {success_msg}")
                             safe_edit_message_text(user_id, proc_msg_id, success_msg)
                             send_to_logger(message, safe_get_messages(user_id).VIDEO_UPLOAD_COMPLETED_SPLITTING_LOG_MSG)
@@ -2756,7 +2763,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                     os.remove(user_vid_path)
                 # Use the actual number of split parts for the success message
                 actual_video_count = len(split_msg_ids) if split_msg_ids else video_count
-                success_msg = f"<b>{safe_get_messages(user_id).DOWN_UP_UPLOAD_COMPLETE_MSG}</b> - {actual_video_count} {safe_get_messages(user_id).DOWN_UP_FILES_UPLOADED_MSG}.\n{safe_get_messages(user_id).CREDITS_MSG}"
+                success_msg = f"<b>{safe_get_messages(user_id).DOWN_UP_UPLOAD_COMPLETE_MSG}</b> - {actual_video_count} {safe_get_messages(user_id).DOWN_UP_FILES_UPLOADED_MSG}."
                 logger.info(f"down_and_up: sending final success message for split video: {success_msg}")
                 safe_edit_message_text(user_id, proc_msg_id, success_msg)
                 send_to_logger(message, safe_get_messages(user_id).VIDEO_UPLOAD_COMPLETED_SPLITTING_LOG_MSG)
@@ -2910,7 +2917,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                     else:
                                         app.send_message(user_id, safe_get_messages(user_id).SUBTITLES_CANNOT_EMBED_LIMITS_MSG, reply_parameters=ReplyParameters(message_id=message.id))
                                 else:
-                                    app.send_message(user_id, safe_get_messages(user_id).SUBTITLES_NOT_AVAILABLE_LANGUAGE_MSG, reply_parameters=ReplyParameters(message_id=message.id))
+                                    # Skip notifying when subtitles are not available for the selected language
+                                    pass
                             
                             # Clean up subtitle files after embedding attempt
                             try:
@@ -2921,12 +2929,16 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                             # Clear
                             clear_subs_check_cache()
                         video_msg = send_videos(message, after_rename_abs_path, '' if force_no_title else original_video_title, duration, thumb_dir, info_text, proc_msg.id, full_video_title, tags_text_final)
+                        # Normalize dict responses (local save mode) to an object with attributes
+                        if isinstance(video_msg, dict):
+                            from types import SimpleNamespace
+                            video_msg = SimpleNamespace(id=video_msg.get("id"), **{k: v for k, v in video_msg.items() if k != "id"})
                         if not video_msg:
                             logger.error("send_videos returned None for single video; aborting cache save for this item")
                             continue
                         
                         # Save video message ID for caching purposes
-                        last_video_msg_id = video_msg.id
+                        last_video_msg_id = getattr(video_msg, "id", None)
                         
                         #found_type = None
                         try:
@@ -2953,7 +2965,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                 log_channel_paid = get_log_channel("video", paid=True)
                                 try:
                                     # Forward the paid video to LOGS_PAID_ID
-                                    safe_forward_messages(log_channel_paid, user_id, [video_msg.id])
+                                    if not getattr(Config, "LOCAL_SAVE_ENABLED", False):
+                                        safe_forward_messages(log_channel_paid, user_id, [video_msg.id])
                                     logger.info(f"down_and_up: NSFW content paid copy sent to PAID channel")
                                 except Exception as e:
                                     logger.error(f"down_and_up: failed to send paid copy to PAID channel: {e}")
@@ -2995,15 +3008,18 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                 if caption_lst and len(caption_lst) > 1:
                                     # This is a split video - always forward each part (even if it's in a playlist)
                                     log_channel = get_log_channel("video", nsfw=True)
-                                    forwarded_msgs = safe_forward_messages(log_channel, user_id, [video_msg.id])
+                                    if not getattr(Config, "LOCAL_SAVE_ENABLED", False):
+                                        forwarded_msgs = safe_forward_messages(log_channel, user_id, [video_msg.id])
                                 elif is_playlist:
                                     # For playlists (non-split videos), always forward each video to NSFW channel
                                     log_channel = get_log_channel("video", nsfw=True)
-                                    forwarded_msgs = safe_forward_messages(log_channel, user_id, [video_msg.id])
+                                    if not getattr(Config, "LOCAL_SAVE_ENABLED", False):
+                                        forwarded_msgs = safe_forward_messages(log_channel, user_id, [video_msg.id])
                                 elif not already_forwarded_to_log:
                                     already_forwarded_to_log = True  # Set flag BEFORE forward to prevent duplicates
                                     log_channel = get_log_channel("video", nsfw=True)
-                                    forwarded_msgs = safe_forward_messages(log_channel, user_id, [video_msg.id])
+                                    if not getattr(Config, "LOCAL_SAVE_ENABLED", False):
+                                        forwarded_msgs = safe_forward_messages(log_channel, user_id, [video_msg.id])
                                 else:
                                     logger.info("down_and_up: skipping forward to NSFW channel - already forwarded to log")
                                     forwarded_msgs = None
@@ -3019,11 +3035,13 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                 elif caption_lst and len(caption_lst) > 1:
                                     # This is a split video - always forward each part
                                     log_channel = get_log_channel("video")
-                                    forwarded_msgs = safe_forward_messages(log_channel, user_id, [video_msg.id])
+                                    if not getattr(Config, "LOCAL_SAVE_ENABLED", False):
+                                        forwarded_msgs = safe_forward_messages(log_channel, user_id, [video_msg.id])
                                 elif is_playlist:
                                     # For playlists, always forward each video to log channel (don't use already_forwarded_to_log)
                                     log_channel = get_log_channel("video")
-                                    forwarded_msgs = safe_forward_messages(log_channel, user_id, [video_msg.id])
+                                    if not getattr(Config, "LOCAL_SAVE_ENABLED", False):
+                                        forwarded_msgs = safe_forward_messages(log_channel, user_id, [video_msg.id])
                                 elif not already_forwarded_to_log:
                                     log_channel = get_log_channel("video")
                                     forwarded_msgs = safe_forward_messages(log_channel, user_id, [video_msg.id])
@@ -3100,7 +3118,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                             # NSFW content in groups -> LOGS_NSFW_ID only
                                             log_channel = get_log_channel("video", nsfw=True)
                                             try:
-                                                safe_forward_messages(log_channel, user_id, [video_msg.id])
+                                                if not getattr(Config, "LOCAL_SAVE_ENABLED", False):
+                                                    safe_forward_messages(log_channel, user_id, [video_msg.id])
                                                 logger.info(f"down_and_up: NSFW content sent to NSFW channel (manual)")
                                             except Exception as e:
                                                 logger.error(f"down_and_up: failed to forward to NSFW channel (manual): {e}")
@@ -3119,10 +3138,12 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                             elif caption_lst and len(caption_lst) > 1:
                                                 # This is a split video - always forward each part
                                                 log_channel = get_log_channel("video")
-                                                forwarded_msgs = safe_forward_messages(log_channel, user_id, [video_msg.id])
+                                                if not getattr(Config, "LOCAL_SAVE_ENABLED", False):
+                                                    forwarded_msgs = safe_forward_messages(log_channel, user_id, [video_msg.id])
                                             elif not already_forwarded_to_log:
                                                 log_channel = get_log_channel("video")
-                                                forwarded_msgs = safe_forward_messages(log_channel, user_id, [video_msg.id])
+                                                if not getattr(Config, "LOCAL_SAVE_ENABLED", False):
+                                                    forwarded_msgs = safe_forward_messages(log_channel, user_id, [video_msg.id])
                                             else:
                                                 logger.info("down_and_up: skipping forward to LOGS_VIDEO_ID - already forwarded to log (manual)")
                                                 forwarded_msgs = None
@@ -3167,7 +3188,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                 if split_msg_ids and not is_playlist:
                                     logger.info(f"PREVENTIVE FIX: Processing split video completion after quality_key error in manual forward: {split_msg_ids}")
                                     actual_video_count = len(split_msg_ids)
-                                    success_msg = f"<b>{safe_get_messages(user_id).DOWN_UP_UPLOAD_COMPLETE_MSG}</b> - {actual_video_count} {safe_get_messages(user_id).DOWN_UP_FILES_UPLOADED_MSG}.\n{safe_get_messages(user_id).CREDITS_MSG}"
+                                    success_msg = f"<b>{safe_get_messages(user_id).DOWN_UP_UPLOAD_COMPLETE_MSG}</b> - {actual_video_count} {safe_get_messages(user_id).DOWN_UP_FILES_UPLOADED_MSG}."
                                     logger.info(f"PREVENTIVE FIX: sending final success message for split video: {success_msg}")
                                     safe_edit_message_text(user_id, proc_msg_id, success_msg)
                                     send_to_logger(message, safe_get_messages(user_id).VIDEO_UPLOAD_COMPLETED_SPLITTING_LOG_MSG)
@@ -3194,7 +3215,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                     log_channel_paid = get_log_channel("video", paid=True)
                                     try:
                                         # Forward the paid video to LOGS_PAID_ID
-                                        safe_forward_messages(log_channel_paid, user_id, [video_msg.id])
+                                        if not getattr(Config, "LOCAL_SAVE_ENABLED", False):
+                                            safe_forward_messages(log_channel_paid, user_id, [video_msg.id])
                                         logger.info(f"down_and_up: NSFW content paid copy sent to PAID channel (error recovery)")
                                     except Exception as e:
                                         logger.error(f"down_and_up: failed to send paid copy to PAID channel (error recovery): {e}")
@@ -3232,7 +3254,8 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                     # NSFW content in groups -> LOGS_NSFW_ID only
                                     log_channel = get_log_channel("video", nsfw=True)
                                     try:
-                                        safe_forward_messages(log_channel, user_id, [video_msg.id])
+                                        if not getattr(Config, "LOCAL_SAVE_ENABLED", False):
+                                            safe_forward_messages(log_channel, user_id, [video_msg.id])
                                         logger.info(f"down_and_up: NSFW content sent to NSFW channel (error recovery)")
                                     except Exception as e:
                                         logger.error(f"down_and_up: failed to forward to NSFW channel (error recovery): {e}")
@@ -3246,10 +3269,12 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                     if caption_lst and len(caption_lst) > 1:
                                         # This is a split video - always forward each part
                                         log_channel = get_log_channel("video")
-                                        forwarded_msgs = safe_forward_messages(log_channel, user_id, [video_msg.id])
+                                        if not getattr(Config, "LOCAL_SAVE_ENABLED", False):
+                                            forwarded_msgs = safe_forward_messages(log_channel, user_id, [video_msg.id])
                                     elif not already_forwarded_to_log:
                                         log_channel = get_log_channel("video")
-                                        forwarded_msgs = safe_forward_messages(log_channel, user_id, [video_msg.id])
+                                        if not getattr(Config, "LOCAL_SAVE_ENABLED", False):
+                                            forwarded_msgs = safe_forward_messages(log_channel, user_id, [video_msg.id])
                                     else:
                                         logger.info("down_and_up: skipping forward to LOGS_VIDEO_ID - already forwarded to log (error recovery)")
                                         forwarded_msgs = None
@@ -3292,7 +3317,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                                     if split_msg_ids and not is_playlist:
                                         logger.info(f"PREVENTIVE FIX: Processing split video completion after quality_key error in manual forward after error: {split_msg_ids}")
                                         actual_video_count = len(split_msg_ids)
-                                        success_msg = f"<b>{safe_get_messages(user_id).DOWN_UP_UPLOAD_COMPLETE_MSG}</b> - {actual_video_count} {safe_get_messages(user_id).DOWN_UP_FILES_UPLOADED_MSG}.\n{safe_get_messages(user_id).CREDITS_MSG}"
+                                        success_msg = f"<b>{safe_get_messages(user_id).DOWN_UP_UPLOAD_COMPLETE_MSG}</b> - {actual_video_count} {safe_get_messages(user_id).DOWN_UP_FILES_UPLOADED_MSG}."
                                         logger.info(f"PREVENTIVE FIX: sending final success message for split video: {success_msg}")
                                         safe_edit_message_text(user_id, proc_msg_id, success_msg)
                                         send_to_logger(message, safe_get_messages(user_id).VIDEO_UPLOAD_COMPLETED_SPLITTING_LOG_MSG)
@@ -3315,7 +3340,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
                         send_error_to_user(message, safe_get_messages(user_id).ERROR_SENDING_VIDEO_MSG.format(error=str(e)))
                         continue
         if successful_uploads == len(indices_to_download):
-            success_msg = f"<b>{safe_get_messages(user_id).DOWN_UP_UPLOAD_COMPLETE_MSG}</b> - {video_count} {safe_get_messages(user_id).DOWN_UP_FILES_UPLOADED_MSG}.\n{safe_get_messages(user_id).CREDITS_MSG}"
+            success_msg = f"<b>{safe_get_messages(user_id).DOWN_UP_UPLOAD_COMPLETE_MSG}</b> - {video_count} {safe_get_messages(user_id).DOWN_UP_FILES_UPLOADED_MSG}."
             safe_edit_message_text(user_id, proc_msg_id, success_msg)
             send_to_logger(message, success_msg)
             try:
@@ -3357,7 +3382,7 @@ def down_and_up(app, message, url, playlist_name, video_count, video_start_with,
             if split_msg_ids and not is_playlist:
                 logger.info(f"HARD FIX: Processing split video completion after quality_key error: {split_msg_ids}")
                 actual_video_count = len(split_msg_ids)
-                success_msg = f"<b>{safe_get_messages(user_id).DOWN_UP_UPLOAD_COMPLETE_MSG}</b> - {actual_video_count} {safe_get_messages(user_id).DOWN_UP_FILES_UPLOADED_MSG}.\n{safe_get_messages(user_id).CREDITS_MSG}"
+                success_msg = f"<b>{safe_get_messages(user_id).DOWN_UP_UPLOAD_COMPLETE_MSG}</b> - {actual_video_count} {safe_get_messages(user_id).DOWN_UP_FILES_UPLOADED_MSG}."
                 logger.info(f"HARD FIX: sending final success message for split video: {success_msg}")
                 safe_edit_message_text(user_id, proc_msg_id, success_msg)
                 send_to_logger(message, safe_get_messages(user_id).VIDEO_UPLOAD_COMPLETED_SPLITTING_LOG_MSG)
