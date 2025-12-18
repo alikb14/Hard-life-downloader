@@ -135,11 +135,7 @@ def url_distractor(app, message):
 
     # Block disabled commands globally
     disabled_commands = {
-        "/cookies_from_browser", "/audio",
-        "/split", "/search", "/proxy", "/keyboard", "/tags", "/list",
-        "/usage", "/block_user", "/unblock_user", "/uncache", "/ban_time",
-        "/run_time", "/reload_cache", "/auto_cache", "/nsfw", "/args",
-        "/clean", "/update_porn", "/reload_porn", "/check_porn", "/help"
+        "/update_porn", "/reload_porn", "/check_porn", "/add_bot_to_group"
     }
     base_cmd = text.split()[0] if text else ""
     if base_cmd in disabled_commands:
@@ -258,9 +254,6 @@ def url_distractor(app, message):
             from COMMANDS.search import search_command
             return search_command(app, fake_msg)
         elif mapped == Config.COOKIES_FROM_BROWSER_COMMAND:
-            if not is_admin:
-                logger.info(f"[DISABLED_CMD] /cookies_from_browser via emoji denied for non-admin user {user_id}")
-                return
             return cookies_from_browser(app, fake_msg)
         elif mapped == Config.LINK_COMMAND:
             from COMMANDS.link_cmd import link_command
@@ -290,9 +283,6 @@ def url_distractor(app, message):
             from COMMANDS.proxy_cmd import proxy_command
             return proxy_command(app, fake_msg)
         elif mapped == Config.CHECK_COOKIE_COMMAND:
-            if not is_admin:
-                logger.info(f"[DISABLED_CMD] /check_cookie via emoji denied for non-admin user {user_id}")
-                return
             return checking_cookie_file(app, fake_msg)
         elif mapped == Config.IMG_COMMAND:
             from COMMANDS.image_cmd import image_command
@@ -337,10 +327,6 @@ def url_distractor(app, message):
         if text.startswith(Config.UNCACHE_COMMAND):
             send_to_user(message, safe_get_messages(user_id).ACCESS_DENIED_ADMIN)
             return
-        # /auto_cache
-        if text.startswith(Config.AUTO_CACHE_COMMAND):
-            send_to_user(message, safe_get_messages(user_id).ACCESS_DENIED_ADMIN)
-            return
         # /all_* (user details)
         if Config.GET_USER_DETAILS_COMMAND in text:
             send_to_user(message, safe_get_messages(user_id).ACCESS_DENIED_ADMIN)
@@ -363,6 +349,22 @@ def url_distractor(app, message):
             return
         # /reload_cache
         if text.startswith(Config.RELOAD_CACHE_COMMAND):
+            send_to_user(message, safe_get_messages(user_id).ACCESS_DENIED_ADMIN)
+            return
+        # /auto_cache
+        if text.startswith(Config.AUTO_CACHE_COMMAND):
+            send_to_user(message, safe_get_messages(user_id).ACCESS_DENIED_ADMIN)
+            return
+        # /usage
+        if text.startswith(Config.USAGE_COMMAND):
+            send_to_user(message, safe_get_messages(user_id).ACCESS_DENIED_ADMIN)
+            return
+        # /run_time
+        if text.startswith(Config.RUN_TIME):
+            send_to_user(message, safe_get_messages(user_id).ACCESS_DENIED_ADMIN)
+            return
+        # /list
+        if text.startswith(Config.LIST_COMMAND):
             send_to_user(message, safe_get_messages(user_id).ACCESS_DENIED_ADMIN)
             return
 
@@ -682,17 +684,11 @@ def url_distractor(app, message):
 
     # /Check_cookie Command
     if text == Config.CHECK_COOKIE_COMMAND:
-        if not is_admin:
-            logger.info(f"[DISABLED_CMD] /check_cookie denied for non-admin user {user_id}")
-            return
         checking_cookie_file(app, message)
         return
 
     # /cookies_from_browser Command
     if text.startswith(Config.COOKIES_FROM_BROWSER_COMMAND):
-        if not is_admin:
-            logger.info(f"[DISABLED_CMD] /cookies_from_browser denied for non-admin user {user_id}")
-            return
         cookies_from_browser(app, message)
         return
 
@@ -921,10 +917,29 @@ def url_distractor(app, message):
 
     # /USAGE Command
     if Config.USAGE_COMMAND in text:
+        if not is_admin:
+            send_to_user(message, safe_get_messages(user_id).ACCESS_DENIED_ADMIN)
+            return
         from COMMANDS.admin_cmd import get_user_usage_stats
         logger.info(f"📃 Emoji triggered - showing usage stats for user {user_id}")
         get_user_usage_stats(app, message)
         logger.info(f"📃 Emoji completed - usage stats shown for user {user_id}")
+        return
+
+    # /Run_Time Command
+    if Config.RUN_TIME in text:
+        if not is_admin:
+            send_to_user(message, safe_get_messages(user_id).ACCESS_DENIED_ADMIN)
+            return
+        check_runtime(message)
+        return
+
+    # /auto_cache Command - Toggle automatic cache reloading
+    if Config.AUTO_CACHE_COMMAND in text:
+        if not is_admin:
+            send_to_user(message, safe_get_messages(user_id).ACCESS_DENIED_ADMIN)
+            return
+        auto_cache_command(app, message)
         return
 
 
@@ -1130,11 +1145,6 @@ def url_distractor(app, message):
             ban_time_command(app, message)
             return
 
-        # /Run_Time Command
-        if Config.RUN_TIME in text:
-            check_runtime(message)
-            return
-
         # /All Command for User Details
         if Config.GET_USER_DETAILS_COMMAND in text:
             get_user_details(app, message)
@@ -1153,11 +1163,6 @@ def url_distractor(app, message):
         # /reload_cache Command - Reload cache for URL
         if Config.RELOAD_CACHE_COMMAND in text:
             reload_firebase_cache_command(app, message)
-            return
-
-        # /auto_cache Command - Toggle automatic cache reloading
-        if Config.AUTO_CACHE_COMMAND in text:
-            auto_cache_command(app, message)
             return
 
         # /Search Command (for admins too)

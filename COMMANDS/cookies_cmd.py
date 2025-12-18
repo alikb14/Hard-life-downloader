@@ -390,9 +390,6 @@ def cookies_from_browser(app, message):
         message: Сообщение команды
     """
     user_id = message.chat.id
-    if int(user_id) not in Config.ADMIN:
-        logger.info(f"[DISABLED_CMD] /cookies_from_browser denied for non-admin user {user_id}")
-        return
 
     # Logging a request for cookies from browser
     send_to_logger(message, safe_get_messages(user_id).COOKIES_BROWSER_REQUESTED_LOG_MSG)
@@ -680,9 +677,6 @@ def download_cookie_callback(app, callback_query):
     elif data == "vk":
         download_and_save_cookie(app, callback_query, Config.VK_COOKIE_URL, "vk")
     elif data == "check_cookie":
-        if int(user_id) not in Config.ADMIN:
-            logger.info(f"[DISABLED_CMD] /check_cookie via cookies menu denied for non-admin user {user_id}")
-            return
         try:
             # Run cookie checking directly using a fake message
             checking_cookie_file(app, fake_message(Config.CHECK_COOKIE_COMMAND, user_id))
@@ -716,9 +710,6 @@ def download_cookie_callback(app, callback_query):
             _fallback_notice=safe_get_messages(user_id).FLOOD_LIMIT_TRY_LATER_MSG
         )
     elif data == "from_browser":
-        if int(user_id) not in Config.ADMIN:
-            logger.info(f"[DISABLED_CMD] /cookies_from_browser via cookies menu denied for non-admin user {user_id}")
-            return
         try:
             cookies_from_browser(app, fake_message("/cookies_from_browser", user_id))
         except FloodWait as e:
@@ -1051,8 +1042,6 @@ def download_and_save_cookie(app, callback_query, url, service):
 # Updating The Cookie File.
 # @reply_with_keyboard
 def save_as_cookie_file(app, message):
-    # Disabled command
-    return
     """
     Сохраняет куки, предоставленные пользователем в текстовом виде.
     
